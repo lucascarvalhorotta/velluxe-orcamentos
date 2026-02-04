@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velluxe Decor - Sistema de Orçamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-serif { font-family: 'Cormorant Garamond', serif; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ==================== SUPABASE CONFIG ====================
+        const SUPABASE_URL = 'https://hukrkhwzziccbrtzggay.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1a3JraHd6emljY2JydHpnZ2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNDgzNzksImV4cCI6MjA4NTYyNDM3OX0.GKedeYQBbPxRzKz_9keK4BEnaSgvBULLLhffD89W-C0';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ==================== BASE DE PRODUTOS ====================
+        const produtosBase = {
+          tecidos: [
+            { codigo: '4001', nome: 'Semi Blackout Marfim', categoria: 'Blackout', largura: 2.80, preco: 25.10, unidade: 'metro' },
+            { codigo: '4002', nome: 'Semi Blackout Cinza Escuro', categoria: 'Blackout', largura: 2.80, preco: 25.10, unidade: 'metro' },
+            { codigo: '4004', nome: 'Semi Blackout Branco', categoria: 'Blackout', largura: 2.80, preco: 31.20, unidade: 'metro' },
+            { codigo: '4005', nome: 'Blackout Branco', categoria: 'Blackout', largura: 2.80, preco: 28.20, unidade: 'metro' },
+            { codigo: '4006', nome: 'Blackout Marfim', categoria: 'Blackout', largura: 2.80, preco: 28.20, unidade: 'metro' },
+            { codigo: '4007', nome: 'Blackout Oceano', categoria: 'Blackout', largura: 2.80, preco: 29.30, unidade: 'metro' },
+            { codigo: '4009', nome: 'Blackout Preto', categoria: 'Blackout', largura: 2.80, preco: 29.30, unidade: 'metro' },
+            { codigo: '4011', nome: 'Blackout Cinza Escuro', categoria: 'Blackout', largura: 2.80, preco: 29.30, unidade: 'metro' },
+            { codigo: '4014', nome: 'Blackout Cinza Claro', categoria: 'Blackout', largura: 2.80, preco: 29.30, unidade: 'metro' },
+            { codigo: '4015', nome: 'Blackout Rafia Marfim', categoria: 'Blackout', largura: 2.80, preco: 69.70, unidade: 'metro' },
+            { codigo: '4016', nome: 'Blackout Rafia Cinza', categoria: 'Blackout', largura: 2.80, preco: 69.70, unidade: 'metro' },
+            { codigo: '4017', nome: 'Blackout Nairóbi Marfim', categoria: 'Blackout', largura: 2.80, preco: 67.70, unidade: 'metro' },
+            { codigo: '4018', nome: 'Blackout Santorine Bege', categoria: 'Blackout', largura: 2.80, preco: 65.70, unidade: 'metro' },
+            { codigo: '4019', nome: 'Blackout Santorine Cinza', categoria: 'Blackout', largura: 2.80, preco: 65.70, unidade: 'metro' },
+            { codigo: '4020', nome: 'Blackout Veludo Brilho Areia', categoria: 'Blackout', largura: 2.80, preco: 35.80, unidade: 'metro' },
+            { codigo: '4021', nome: 'Blackout Veludo Brilho Cinza', categoria: 'Blackout', largura: 2.80, preco: 35.80, unidade: 'metro' },
+            { codigo: '4022', nome: 'Blackout 100% Cinza Escuro', categoria: 'Blackout', largura: 2.80, preco: 52.00, unidade: 'metro' },
+            { codigo: '4023', nome: 'Blackout 100% Branco', categoria: 'Blackout', largura: 2.80, preco: 52.00, unidade: 'metro' },
+            { codigo: '4024', nome: 'Blackout 100% Marfim', categoria: 'Blackout', largura: 2.80, preco: 52.00, unidade: 'metro' },
+            { codigo: '4025', nome: 'Blackout 100% Cinza', categoria: 'Blackout', largura: 2.80, preco: 52.00, unidade: 'metro' },
+            { codigo: '4026', nome: 'Blackout 100% Dupla Face Branco', categoria: 'Blackout', largura: 2.80, preco: 48.20, unidade: 'metro' },
+            { codigo: '4027', nome: 'Blackout 100% Dupla Face Marfim', categoria: 'Blackout', largura: 2.80, preco: 48.20, unidade: 'metro' },
+            { codigo: '4040', nome: 'Forro Poliester Médio Branco', categoria: 'Forro', largura: 2.80, preco: 22.50, unidade: 'metro' },
+            { codigo: '4041', nome: 'Forro Poliester Médio Marfim', categoria: 'Forro', largura: 2.80, preco: 22.50, unidade: 'metro' },
+            { codigo: '4044', nome: 'Forro Microfibra Branco', categoria: 'Forro', largura: 2.80, preco: 9.90, unidade: 'metro' },
+            { codigo: '4045', nome: 'Forro Microfibra Off White', categoria: 'Forro', largura: 2.80, preco: 9.90, unidade: 'metro' },
+            { codigo: '4046', nome: 'Forro Microfibra Areia', categoria: 'Forro', largura: 2.80, preco: 9.90, unidade: 'metro' },
+            { codigo: '4047', nome: 'Forro Microfibra Marfim', categoria: 'Forro', largura: 2.80, preco: 9.90, unidade: 'metro' },
+            { codigo: '4057', nome: 'Voil Flame Branco', categoria: 'Voil', largura: 2.80, preco: 20.20, unidade: 'metro' },
+            { codigo: '4058', nome: 'Voil Flame Marfim', categoria: 'Voil', largura: 2.80, preco: 20.20, unidade: 'metro' },
+            { codigo: '4059', nome: 'Voal Flame Bege', categoria: 'Voil', largura: 2.80, preco: 20.20, unidade: 'metro' },
+            { codigo: '4060', nome: 'Voal Flame Cinza', categoria: 'Voil', largura: 2.80, preco: 20.20, unidade: 'metro' },
+            { codigo: '4062', nome: 'Oxford Branco', categoria: 'Oxford', largura: 2.80, preco: 20.40, unidade: 'metro' },
+            { codigo: '4063', nome: 'Oxford Marfim', categoria: 'Oxford', largura: 2.80, preco: 20.40, unidade: 'metro' },
+            { codigo: '4064', nome: 'Oxford Cinza', categoria: 'Oxford', largura: 2.80, preco: 20.40, unidade: 'metro' },
+            { codigo: '5001', nome: 'Renda Verona Areia', categoria: 'Renda', largura: 2.80, preco: 37.50, unidade: 'metro' },
+            { codigo: '5003', nome: 'Renda Verona Bege Duna', categoria: 'Renda', largura: 2.80, preco: 37.50, unidade: 'metro' },
+            { codigo: '5005', nome: 'Renda Verona Cinza', categoria: 'Renda', largura: 2.80, preco: 37.50, unidade: 'metro' },
+            { codigo: '5010', nome: 'Renda Genova Natural', categoria: 'Renda', largura: 2.80, preco: 51.10, unidade: 'metro' },
+            { codigo: '5011', nome: 'Voal Bellini Branco', categoria: 'Voil', largura: 3.00, preco: 14.30, unidade: 'metro' },
+            { codigo: '5012', nome: 'Renda Genova Cascalho', categoria: 'Renda', largura: 2.80, preco: 51.10, unidade: 'metro' },
+            { codigo: '5013', nome: 'Voal Bellini Areia', categoria: 'Voil', largura: 3.00, preco: 14.30, unidade: 'metro' },
+            { codigo: '5015', nome: 'Voal Bellini Fendi', categoria: 'Voil', largura: 3.00, preco: 14.30, unidade: 'metro' },
+            { codigo: '5018', nome: 'Renda Veneza Branco', categoria: 'Renda', largura: 2.80, preco: 49.50, unidade: 'metro' },
+            { codigo: '5019', nome: 'Voal Monaco Natural', categoria: 'Voil', largura: 3.00, preco: 22.50, unidade: 'metro' },
+            { codigo: '5021', nome: 'Voal Monaco Areia', categoria: 'Voil', largura: 3.00, preco: 22.50, unidade: 'metro' },
+            { codigo: '5028', nome: 'Voil IP2 Areia', categoria: 'Voil', largura: 3.00, preco: 33.00, unidade: 'metro' },
+            { codigo: '5032', nome: 'Voil IP2 Branco', categoria: 'Voil', largura: 3.00, preco: 33.00, unidade: 'metro' },
+            { codigo: '5046', nome: 'Voal IP3 Branco', categoria: 'Voil', largura: 3.00, preco: 40.50, unidade: 'metro' },
+            { codigo: '5054', nome: 'Voal Nápoles Branco', categoria: 'Voil', largura: 3.00, preco: 36.00, unidade: 'metro' },
+            { codigo: '5059', nome: 'Atacama Branco', categoria: 'Linho', largura: 3.00, preco: 49.50, unidade: 'metro' },
+            { codigo: '5061', nome: 'Linho Cairo Areia', categoria: 'Linho', largura: 3.00, preco: 34.50, unidade: 'metro' },
+            { codigo: '5062', nome: 'Linho Cairo Bege Duna', categoria: 'Linho', largura: 3.00, preco: 34.50, unidade: 'metro' },
+            { codigo: '5063', nome: 'Linho Cairo Cinza', categoria: 'Linho', largura: 3.00, preco: 34.50, unidade: 'metro' },
+            { codigo: '5064', nome: 'Ravena Branco', categoria: 'Linho', largura: 3.00, preco: 48.00, unidade: 'metro' },
+            { codigo: '11317', nome: 'Voil Liso Branco', categoria: 'Voil', largura: 3.00, preco: 11.60, unidade: 'metro' },
+            { codigo: '13924', nome: 'Voil Snow Branco', categoria: 'Voil', largura: 3.00, preco: 14.20, unidade: 'metro' },
+            { codigo: '13968', nome: 'Voil Unique Branco', categoria: 'Voil', largura: 3.00, preco: 25.00, unidade: 'metro' },
+            { codigo: '14423', nome: 'Linho Moorea Branco', categoria: 'Linho', largura: 3.00, preco: 48.10, unidade: 'metro' },
+            { codigo: '15632', nome: 'Linho Absoluto Linho', categoria: 'Linho', largura: 3.00, preco: 91.40, unidade: 'metro' },
+            { codigo: '15639', nome: 'Linho Gaia Linho', categoria: 'Linho', largura: 3.00, preco: 40.70, unidade: 'metro' },
+            { codigo: '15649', nome: 'Boucle Cortina Loft Off White', categoria: 'Boucle', largura: 3.00, preco: 62.00, unidade: 'metro' },
+            { codigo: '15735', nome: 'Boucle Resort Linho', categoria: 'Boucle', largura: 3.00, preco: 34.30, unidade: 'metro' },
+          ],
+          aviamentos: [
+            { codigo: 'TR-S', nome: 'Trilho Suiço Simples', categoria: 'Trilho', preco: 6.00, unidade: 'metro' },
+            { codigo: 'TR-SA', nome: 'Trilho Suiço Simples c/ Aba', categoria: 'Trilho', preco: 9.65, unidade: 'metro' },
+            { codigo: 'TR-D', nome: 'Trilho Suiço Duplo', categoria: 'Trilho', preco: 19.20, unidade: 'metro' },
+            { codigo: 'TR-DA', nome: 'Trilho Suiço Duplo Alongado', categoria: 'Trilho', preco: 27.10, unidade: 'metro' },
+            { codigo: 'TR-T', nome: 'Trilho Suiço Triplo', categoria: 'Trilho', preco: 28.80, unidade: 'metro' },
+            { codigo: 'PR-S', nome: 'Presilha Trilho Simples', categoria: 'Presilha', preco: 1.70, unidade: 'unidade' },
+            { codigo: 'PR-SA', nome: 'Presilha Trilho Simples c/ Aba', categoria: 'Presilha', preco: 1.90, unidade: 'unidade' },
+            { codigo: 'PR-D', nome: 'Presilha Trilho Duplo', categoria: 'Presilha', preco: 2.00, unidade: 'unidade' },
+            { codigo: 'PR-T', nome: 'Presilha Trilho Triplo', categoria: 'Presilha', preco: 3.60, unidade: 'unidade' },
+            { codigo: 'DL-R', nome: 'Deslizante Redondo (100un)', categoria: 'Deslizante', preco: 15.50, unidade: 'pacote' },
+            { codigo: 'DL-Q', nome: 'Deslizante Quadrado (100un)', categoria: 'Deslizante', preco: 17.50, unidade: 'pacote' },
+            { codigo: 'DL-C', nome: 'Deslizante Click (100un)', categoria: 'Deslizante', preco: 29.00, unidade: 'pacote' },
+            { codigo: 'DL-FF', nome: 'Deslizante Fita Fácil (100un)', categoria: 'Deslizante', preco: 29.00, unidade: 'pacote' },
+            { codigo: 'DL-W', nome: 'Deslizante Wave (100un)', categoria: 'Deslizante', preco: 27.30, unidade: 'pacote' },
+            { codigo: 'FT-FF', nome: 'Fita Fácil', categoria: 'Fita', preco: 3.00, unidade: 'metro' },
+            { codigo: 'FT-FFB', nome: 'Fita Fácil Bella', categoria: 'Fita', preco: 3.90, unidade: 'metro' },
+            { codigo: 'FT-W2', nome: 'Fita Wave 2x1 Regular', categoria: 'Fita', preco: 8.10, unidade: 'metro' },
+            { codigo: 'FT-W3', nome: 'Fita Wave 3x1 Regular', categoria: 'Fita', preco: 8.10, unidade: 'metro' },
+            { codigo: 'ET-P10', nome: 'Entretela Plástica 10cm', categoria: 'Entretela', preco: 1.55, unidade: 'metro' },
+            { codigo: 'ET-P8', nome: 'Entretela Plástica 8cm', categoria: 'Entretela', preco: 1.26, unidade: 'metro' },
+            { codigo: 'ET-T8', nome: 'Entretela TNT 8cm', categoria: 'Entretela', preco: 0.80, unidade: 'metro' },
+            { codigo: 'ET-T10', nome: 'Entretela TNT 10cm', categoria: 'Entretela', preco: 1.00, unidade: 'metro' },
+            { codigo: 'SL-45', nome: 'Suporte L 4x5', categoria: 'Suporte', preco: 5.70, unidade: 'unidade' },
+            { codigo: 'SL-47', nome: 'Suporte L 4x7', categoria: 'Suporte', preco: 6.60, unidade: 'unidade' },
+            { codigo: 'SL-410', nome: 'Suporte L 4x10', categoria: 'Suporte', preco: 7.30, unidade: 'unidade' },
+            { codigo: 'TB-19M', nome: 'Tubo Metal 19mm', categoria: 'Varão', preco: 12.80, unidade: 'metro' },
+            { codigo: 'TB-28M', nome: 'Tubo Metal 28mm', categoria: 'Varão', preco: 17.20, unidade: 'metro' },
+            { codigo: 'TB-19P', nome: 'Tubo PVC 19mm', categoria: 'Varão', preco: 10.50, unidade: 'metro' },
+            { codigo: 'TB-28P', nome: 'Tubo PVC 28mm', categoria: 'Varão', preco: 16.30, unidade: 'metro' },
+            { codigo: 'TB-28W', nome: 'Tubo Wave 28mm', categoria: 'Varão', preco: 24.30, unidade: 'metro' },
+            { codigo: 'PT-T19', nome: 'Ponteira Tampa 19mm', categoria: 'Ponteira', preco: 3.40, unidade: 'unidade' },
+            { codigo: 'PT-T28', nome: 'Ponteira Tampa 28mm', categoria: 'Ponteira', preco: 4.30, unidade: 'unidade' },
+            { codigo: 'PT-B19', nome: 'Ponteira Bola 19mm', categoria: 'Ponteira', preco: 4.90, unidade: 'unidade' },
+            { codigo: 'PT-B28', nome: 'Ponteira Bola 28mm', categoria: 'Ponteira', preco: 5.95, unidade: 'unidade' },
+            { codigo: 'SM-19-4', nome: 'Suporte Metal 19mm 4cm', categoria: 'Suporte', preco: 9.80, unidade: 'unidade' },
+            { codigo: 'SM-28-4', nome: 'Suporte Metal 28mm 4cm', categoria: 'Suporte', preco: 10.20, unidade: 'unidade' },
+            { codigo: 'SM-RF19', nome: 'Suporte Metal Reforçado 19mm', categoria: 'Suporte', preco: 14.75, unidade: 'unidade' },
+            { codigo: 'SM-RF28', nome: 'Suporte Metal Reforçado 28mm', categoria: 'Suporte', preco: 16.80, unidade: 'unidade' },
+            { codigo: 'FR-2', nome: 'Franzidor 2 Fios', categoria: 'Franzidor', preco: 0.87, unidade: 'metro' },
+            { codigo: 'FR-4', nome: 'Franzidor 4 Fios', categoria: 'Franzidor', preco: 1.40, unidade: 'metro' },
+            { codigo: 'FR-6', nome: 'Franzidor 6 Fios', categoria: 'Franzidor', preco: 2.05, unidade: 'metro' },
+            { codigo: 'IL-28RB', nome: 'Ilhós 28mm Redondo Branco', categoria: 'Ilhós', preco: 0.39, unidade: 'unidade' },
+            { codigo: 'IL-28RC', nome: 'Ilhós 28mm Redondo Cromado', categoria: 'Ilhós', preco: 0.72, unidade: 'unidade' },
+            { codigo: 'AR-19B', nome: 'Argola 19mm Branca', categoria: 'Argola', preco: 0.22, unidade: 'unidade' },
+            { codigo: 'AR-28B', nome: 'Argola 28mm Branca', categoria: 'Argola', preco: 0.34, unidade: 'unidade' },
+            { codigo: 'AR-28C', nome: 'Argola 28mm Cromada', categoria: 'Argola', preco: 0.58, unidade: 'unidade' },
+          ]
+        };
+
+        const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        const formatPercent = (value) => `${value.toFixed(1)}%`;
+        const gerarNumeroOrcamento = () => {
+          const ano = new Date().getFullYear();
+          const mes = String(new Date().getMonth() + 1).padStart(2, '0');
+          const random = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+          return `VD${ano}${mes}-${random}`;
+        };
+
+        // ==================== LOGIN ====================
+        function LoginScreen({ onLogin }) {
+          const [email, setEmail] = useState('');
+          const [password, setPassword] = useState('');
+          const [loading, setLoading] = useState(false);
+          const [error, setError] = useState('');
+
+          const handleLogin = async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            setError('');
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) { setError('Email ou senha inválidos'); setLoading(false); }
+            else { onLogin(data.user); }
+          };
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+                <div className="text-center mb-8">
+                  <h1 className="text-4xl font-serif text-slate-800 tracking-wide">Velluxe</h1>
+                  <div className="flex justify-center gap-1 my-2">
+                    <div className="w-8 h-1 bg-amber-500 rounded"></div>
+                    <div className="w-8 h-1 bg-slate-800 rounded"></div>
+                    <div className="w-8 h-1 bg-amber-300 rounded"></div>
+                  </div>
+                  <p className="text-sm font-serif italic text-gray-500">Decor</p>
+                  <p className="text-xs text-gray-400 mt-4">Sistema de Orçamentos</p>
+                </div>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <label className="text-sm text-gray-600 block mb-1">E-mail</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-transparent" placeholder="seu@email.com" required />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600 block mb-1">Senha</label>
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-transparent" placeholder="••••••••" required />
+                  </div>
+                  {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{error}</div>}
+                  <button type="submit" disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50">
+                    {loading ? 'Entrando...' : 'Entrar'}
+                  </button>
+                </form>
+                <p className="text-center text-xs text-gray-400 mt-6">Cortinas Sob Medida • Cascavel/PR</p>
+              </div>
+            </div>
+          );
+        }
+
+        // ==================== APP PRINCIPAL ====================
+        function VelluxeOrcamentos({ user, onLogout }) {
+          const pdfRef = useRef(null);
+          const [activeTab, setActiveTab] = useState('orcamento');
+          const [showPreview, setShowPreview] = useState(false);
+          const [searchTerm, setSearchTerm] = useState('');
+          const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
+          const [showAddItem, setShowAddItem] = useState(false);
+          const [itemSelecionado, setItemSelecionado] = useState(null);
+          const [quantidade, setQuantidade] = useState(1);
+          const [precoVenda, setPrecoVenda] = useState('');
+          const [descricaoItem, setDescricaoItem] = useState('');
+          const [gerando, setGerando] = useState(false);
+          const [salvando, setSalvando] = useState(false);
+          const [carregando, setCarregando] = useState(true);
+          const [editandoId, setEditandoId] = useState(null);
+
+          const orcamentoVazio = {
+            numero: gerarNumeroOrcamento(),
+            data: new Date().toISOString().split('T')[0],
+            validade: 15,
+            cliente: { nome: '', telefone: '', email: '', cpfCnpj: '', endereco: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'PR', cep: '' },
+            itens: [],
+            custoMaoObra: 0,
+            custoInstalacao: 0,
+            markup: 100,
+            desconto: 0,
+            formaPagamento: 'À vista ou em até 3x sem juros',
+            prazoEntrega: '20 a 30 dias úteis',
+            observacoes: '',
+            garantia: '12 meses contra defeitos de fabricação'
+          };
+
+          const [orcamento, setOrcamento] = useState(orcamentoVazio);
+          const [historico, setHistorico] = useState([]);
+
+          useEffect(() => { carregarHistorico(); }, []);
+
+          const carregarHistorico = async () => {
+            setCarregando(true);
+            const { data, error } = await supabase.from('orcamentos').select('*').order('created_at', { ascending: false });
+            if (error) { console.error('Erro:', error); }
+            if (data) {
+              setHistorico(data.map(orc => ({
+                id: orc.id, numero: orc.numero, data: orc.data, validade: orc.validade,
+                cliente: orc.cliente, itens: orc.itens,
+                custoMaoObra: parseFloat(orc.custo_mao_obra) || 0,
+                custoInstalacao: parseFloat(orc.custo_instalacao) || 0,
+                markup: parseFloat(orc.markup) || 100,
+                desconto: parseFloat(orc.desconto) || 0,
+                formaPagamento: orc.forma_pagamento, prazoEntrega: orc.prazo_entrega,
+                observacoes: orc.observacoes, garantia: orc.garantia, totais: orc.totais,
+                dataSalvo: orc.created_at, userEmail: orc.user_email
+              })));
+            }
+            setCarregando(false);
+          };
+
+          const todosProdutos = [...produtosBase.tecidos, ...produtosBase.aviamentos];
+          const categorias = [...new Set(todosProdutos.map(p => p.categoria))].sort();
+          const produtosFiltrados = todosProdutos.filter(p => {
+            const matchSearch = p.nome.toLowerCase().includes(searchTerm.toLowerCase()) || p.codigo.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchCategoria = categoriaFiltro === 'todos' || p.categoria === categoriaFiltro;
+            return matchSearch && matchCategoria;
+          });
+
+          const calcularTotais = () => {
+            const custoMateriais = orcamento.itens.reduce((acc, item) => acc + ((item.precoCusto || 0) * item.quantidade), 0);
+            const subtotalItens = orcamento.itens.reduce((acc, item) => acc + item.valorTotal, 0);
+            const custoTotal = custoMateriais + orcamento.custoMaoObra + orcamento.custoInstalacao;
+            const precoVendaBruto = custoTotal * (1 + orcamento.markup / 100);
+            const valorDesconto = precoVendaBruto * (orcamento.desconto / 100);
+            const total = precoVendaBruto - valorDesconto;
+            const lucro = total - custoTotal;
+            const margem = total > 0 ? (lucro / total) * 100 : 0;
+            return { custoMateriais, subtotalItens, custoTotal, precoVendaBruto, valorDesconto, total, lucro, margem };
+          };
+          const totais = calcularTotais();
+
+          const adicionarItem = () => {
+            if (!itemSelecionado || quantidade <= 0) return;
+            const novoItem = {
+              id: Date.now(), codigo: itemSelecionado.codigo, nome: itemSelecionado.nome,
+              descricao: descricaoItem || itemSelecionado.nome, categoria: itemSelecionado.categoria,
+              quantidade: parseFloat(quantidade), unidade: itemSelecionado.unidade,
+              precoCusto: itemSelecionado.preco,
+              valorUnitario: parseFloat(precoVenda) || itemSelecionado.preco,
+              valorTotal: (parseFloat(precoVenda) || itemSelecionado.preco) * parseFloat(quantidade)
+            };
+            setOrcamento({ ...orcamento, itens: [...orcamento.itens, novoItem] });
+            setShowAddItem(false); setItemSelecionado(null); setQuantidade(1); setPrecoVenda(''); setDescricaoItem('');
+          };
+
+          const removerItem = (itemId) => setOrcamento({ ...orcamento, itens: orcamento.itens.filter(i => i.id !== itemId) });
+          const atualizarCliente = (campo, valor) => setOrcamento({ ...orcamento, cliente: { ...orcamento.cliente, [campo]: valor } });
+
+          const gerarPDF = async () => {
+            setGerando(true);
+            const opt = {
+              margin: 0,
+              filename: `Orcamento_${orcamento.numero}_${orcamento.cliente.nome.replace(/\s+/g, '_') || 'Cliente'}.pdf`,
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            try { await html2pdf().set(opt).from(pdfRef.current).save(); }
+            catch (e) { alert('Erro ao gerar PDF'); }
+            setGerando(false);
+          };
+
+          const salvarOrcamento = async () => {
+            if (!orcamento.cliente.nome) { alert('Preencha o nome do cliente'); return; }
+            if (orcamento.itens.length === 0) { alert('Adicione pelo menos um item'); return; }
+            setSalvando(true);
+            const dados = {
+              user_id: user.id, user_email: user.email, numero: orcamento.numero, data: orcamento.data,
+              validade: orcamento.validade, cliente: orcamento.cliente, itens: orcamento.itens,
+              custo_mao_obra: orcamento.custoMaoObra, custo_instalacao: orcamento.custoInstalacao,
+              markup: orcamento.markup, desconto: orcamento.desconto, forma_pagamento: orcamento.formaPagamento,
+              prazo_entrega: orcamento.prazoEntrega, observacoes: orcamento.observacoes,
+              garantia: orcamento.garantia, totais: calcularTotais()
+            };
+            let result;
+            if (editandoId) { result = await supabase.from('orcamentos').update(dados).eq('id', editandoId); }
+            else { result = await supabase.from('orcamentos').insert([dados]); }
+            if (result.error) { alert('Erro: ' + result.error.message); }
+            else { alert(editandoId ? 'Atualizado!' : 'Salvo!'); setEditandoId(null); await carregarHistorico(); }
+            setSalvando(false);
+          };
+
+          const novoOrcamento = () => {
+            if (orcamento.itens.length > 0 && !confirm('Criar novo? Dados atuais serão perdidos.')) return;
+            setOrcamento({ ...orcamentoVazio, numero: gerarNumeroOrcamento() }); setEditandoId(null);
+          };
+          const limparOrcamento = () => { if (confirm('Limpar dados?')) setOrcamento({ ...orcamentoVazio, numero: orcamento.numero }); };
+          const editarOrcamento = (orc) => { setOrcamento({ ...orc, itens: orc.itens.map(i => ({ ...i, id: Date.now() + Math.random() })) }); setEditandoId(orc.id); setActiveTab('orcamento'); };
+          const duplicarOrcamento = (orc) => { setOrcamento({ ...orc, numero: gerarNumeroOrcamento(), data: new Date().toISOString().split('T')[0], itens: orc.itens.map(i => ({ ...i, id: Date.now() + Math.random() })) }); setEditandoId(null); setActiveTab('orcamento'); };
+          const excluirOrcamento = async (id) => { if (confirm('Excluir permanentemente?')) { await supabase.from('orcamentos').delete().eq('id', id); await carregarHistorico(); } };
+
+          return (
+            <div className="min-h-screen bg-gray-100">
+              {/* Header */}
+              <header className="bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg">
+                <div className="max-w-6xl mx-auto px-4 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <h1 className="text-2xl font-serif tracking-wide">Velluxe</h1>
+                        <div className="flex gap-1 my-1"><div className="w-6 h-0.5 bg-amber-500"></div><div className="w-6 h-0.5 bg-white"></div><div className="w-6 h-0.5 bg-amber-300"></div></div>
+                        <p className="text-xs text-gray-400 italic">Decor</p>
+                      </div>
+                      <div className="hidden sm:block border-l border-gray-600 pl-4 ml-2">
+                        <p className="text-amber-400 font-medium">Sistema de Orçamentos</p>
+                        <p className="text-xs text-gray-400">Cascavel/PR</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right hidden sm:block"><p className="text-xs text-gray-400">Logado</p><p className="text-sm text-amber-400">{user.email}</p></div>
+                      <button onClick={novoOrcamento} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Novo</button>
+                      <button onClick={onLogout} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm" title="Sair">🚪</button>
+                    </div>
+                  </div>
+                </div>
+              </header>
+
+              {/* Tabs */}
+              <nav className="bg-white border-b shadow-sm sticky top-0 z-40">
+                <div className="max-w-6xl mx-auto flex">
+                  {[{ id: 'orcamento', label: '📝 Orçamento', badge: orcamento.itens.length }, { id: 'catalogo', label: '📦 Catálogo' }, { id: 'historico', label: '📁 Histórico', badge: historico.length }].map(tab => (
+                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 py-3 text-sm font-medium flex items-center gap-2 ${activeTab === tab.id ? 'text-amber-600 border-b-2 border-amber-500 bg-amber-50' : 'text-gray-600 hover:bg-gray-50'}`}>
+                      {tab.label}{tab.badge > 0 && <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-amber-500 text-white' : 'bg-gray-200'}`}>{tab.badge}</span>}
+                    </button>
+                  ))}
+                </div>
+              </nav>
+
+              {editandoId && <div className="bg-blue-500 text-white text-center py-2 text-sm">✏️ Editando <strong>{orcamento.numero}</strong></div>}
+
+              <main className="max-w-6xl mx-auto p-4">
+                {/* TAB ORÇAMENTO */}
+                {activeTab === 'orcamento' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2 space-y-4">
+                      {/* Dados Orçamento */}
+                      <div className="bg-white rounded-lg shadow p-4">
+                        <h2 className="font-semibold text-gray-800 mb-3">📋 Dados do Orçamento</h2>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div><label className="text-xs text-gray-500 block mb-1">Número</label><input type="text" value={orcamento.numero} readOnly className="border rounded-lg px-3 py-2 text-sm w-full bg-gray-50 font-mono" /></div>
+                          <div><label className="text-xs text-gray-500 block mb-1">Data</label><input type="date" value={orcamento.data} onChange={(e) => setOrcamento({...orcamento, data: e.target.value})} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                          <div><label className="text-xs text-gray-500 block mb-1">Validade</label><input type="number" value={orcamento.validade} onChange={(e) => setOrcamento({...orcamento, validade: parseInt(e.target.value) || 15})} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                        </div>
+                      </div>
+                      {/* Cliente */}
+                      <div className="bg-white rounded-lg shadow p-4">
+                        <h2 className="font-semibold text-gray-800 mb-3">👤 Dados do Cliente</h2>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="text-xs text-gray-500 block mb-1">Nome *</label><input type="text" value={orcamento.cliente.nome} onChange={(e) => atualizarCliente('nome', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" placeholder="Nome" /></div>
+                          <div><label className="text-xs text-gray-500 block mb-1">Telefone *</label><input type="tel" value={orcamento.cliente.telefone} onChange={(e) => atualizarCliente('telefone', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" placeholder="(45) 99999-9999" /></div>
+                          <div><label className="text-xs text-gray-500 block mb-1">E-mail</label><input type="email" value={orcamento.cliente.email} onChange={(e) => atualizarCliente('email', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                          <div><label className="text-xs text-gray-500 block mb-1">CPF/CNPJ</label><input type="text" value={orcamento.cliente.cpfCnpj} onChange={(e) => atualizarCliente('cpfCnpj', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                        </div>
+                        <div className="border-t mt-4 pt-4 grid grid-cols-6 gap-3">
+                          <div className="col-span-4"><label className="text-xs text-gray-500 block mb-1">Endereço</label><input type="text" value={orcamento.cliente.endereco} onChange={(e) => atualizarCliente('endereco', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                          <div className="col-span-2"><label className="text-xs text-gray-500 block mb-1">Número</label><input type="text" value={orcamento.cliente.numero} onChange={(e) => atualizarCliente('numero', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                          <div className="col-span-3"><label className="text-xs text-gray-500 block mb-1">Bairro</label><input type="text" value={orcamento.cliente.bairro} onChange={(e) => atualizarCliente('bairro', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                          <div className="col-span-2"><label className="text-xs text-gray-500 block mb-1">Cidade</label><input type="text" value={orcamento.cliente.cidade} onChange={(e) => atualizarCliente('cidade', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                          <div className="col-span-1"><label className="text-xs text-gray-500 block mb-1">UF</label><input type="text" value={orcamento.cliente.estado} onChange={(e) => atualizarCliente('estado', e.target.value)} className="border rounded-lg px-3 py-2 text-sm w-full" maxLength={2} /></div>
+                        </div>
+                      </div>
+                      {/* Itens */}
+                      <div className="bg-white rounded-lg shadow p-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <h2 className="font-semibold text-gray-800">📦 Itens</h2>
+                          <button onClick={() => setShowAddItem(true)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Adicionar</button>
+                        </div>
+                        {orcamento.itens.length === 0 ? (
+                          <div className="text-center py-8 text-gray-400 border-2 border-dashed rounded-lg">Nenhum item</div>
+                        ) : (
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50"><tr><th className="text-left p-2">Item</th><th className="text-center p-2">Qtd</th><th className="text-right p-2">Unit.</th><th className="text-right p-2">Total</th><th></th></tr></thead>
+                            <tbody>
+                              {orcamento.itens.map(item => (
+                                <tr key={item.id} className="border-t">
+                                  <td className="p-2"><p className="font-medium">{item.descricao}</p><p className="text-xs text-gray-500">{item.categoria}</p></td>
+                                  <td className="text-center p-2">{item.quantidade}</td>
+                                  <td className="text-right p-2">{formatCurrency(item.valorUnitario)}</td>
+                                  <td className="text-right p-2 font-semibold text-amber-600">{formatCurrency(item.valorTotal)}</td>
+                                  <td className="p-2"><button onClick={() => removerItem(item.id)} className="text-red-400 hover:text-red-600">✕</button></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                      {/* Serviços */}
+                      <div className="bg-white rounded-lg shadow p-4">
+                        <h2 className="font-semibold text-gray-800 mb-3">⚙️ Serviços</h2>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="text-xs text-gray-500 block mb-1">Mão de Obra</label><input type="number" value={orcamento.custoMaoObra || ''} onChange={(e) => setOrcamento({...orcamento, custoMaoObra: parseFloat(e.target.value) || 0})} className="border rounded-lg px-3 py-2 text-sm w-full" placeholder="R$ 0,00" /></div>
+                          <div><label className="text-xs text-gray-500 block mb-1">Instalação</label><input type="number" value={orcamento.custoInstalacao || ''} onChange={(e) => setOrcamento({...orcamento, custoInstalacao: parseFloat(e.target.value) || 0})} className="border rounded-lg px-3 py-2 text-sm w-full" placeholder="R$ 0,00" /></div>
+                          <div className="col-span-2"><label className="text-xs text-gray-500 block mb-1">Prazo</label><input type="text" value={orcamento.prazoEntrega} onChange={(e) => setOrcamento({...orcamento, prazoEntrega: e.target.value})} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                          <div className="col-span-2"><label className="text-xs text-gray-500 block mb-1">Pagamento</label><input type="text" value={orcamento.formaPagamento} onChange={(e) => setOrcamento({...orcamento, formaPagamento: e.target.value})} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                          <div className="col-span-2"><label className="text-xs text-gray-500 block mb-1">Observações</label><textarea value={orcamento.observacoes} onChange={(e) => setOrcamento({...orcamento, observacoes: e.target.value})} className="border rounded-lg px-3 py-2 text-sm w-full" rows={2} /></div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Lateral */}
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-lg shadow p-4">
+                        <h2 className="font-semibold text-gray-800 mb-3">📊 Markup</h2>
+                        <input type="number" value={orcamento.markup} onChange={(e) => setOrcamento({...orcamento, markup: parseFloat(e.target.value) || 0})} className="border rounded-lg px-3 py-2 w-full text-lg font-bold text-center mb-2" />
+                        <div className="flex gap-1">{[50,80,100,120,150].map(v => <button key={v} onClick={() => setOrcamento({...orcamento, markup: v})} className={`flex-1 text-xs py-1.5 rounded ${orcamento.markup === v ? 'bg-amber-500 text-white' : 'bg-gray-100'}`}>{v}%</button>)}</div>
+                        <div className="mt-3"><label className="text-xs text-gray-500 block mb-1">Desconto %</label><input type="number" value={orcamento.desconto || ''} onChange={(e) => setOrcamento({...orcamento, desconto: parseFloat(e.target.value) || 0})} className="border rounded-lg px-3 py-2 text-sm w-full" /></div>
+                      </div>
+                      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg shadow-lg p-4 text-white">
+                        <h2 className="font-semibold mb-4 text-amber-400">💰 Resumo</h2>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between"><span className="text-gray-400">Materiais:</span><span>{formatCurrency(totais.custoMateriais)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-400">Mão de Obra:</span><span>{formatCurrency(orcamento.custoMaoObra)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-400">Instalação:</span><span>{formatCurrency(orcamento.custoInstalacao)}</span></div>
+                          <div className="border-t border-gray-600 my-2"></div>
+                          <div className="flex justify-between font-medium"><span>CUSTO:</span><span className="text-red-400">{formatCurrency(totais.custoTotal)}</span></div>
+                        </div>
+                        <div className="mt-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                          <p className="text-xs text-amber-300">VENDA</p>
+                          <p className="text-3xl font-bold text-amber-400">{formatCurrency(totais.total)}</p>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <div className="bg-green-900/50 rounded-lg p-2 text-center"><p className="text-xs text-green-300">LUCRO</p><p className="font-bold text-green-400">{formatCurrency(totais.lucro)}</p></div>
+                          <div className="bg-blue-900/50 rounded-lg p-2 text-center"><p className="text-xs text-blue-300">MARGEM</p><p className="font-bold text-blue-400">{formatPercent(totais.margem)}</p></div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <button onClick={() => setShowPreview(true)} disabled={orcamento.itens.length === 0} className={`w-full py-2.5 rounded-lg font-medium ${orcamento.itens.length === 0 ? 'bg-gray-200 text-gray-400' : 'bg-white border-2 border-slate-800 text-slate-800 hover:bg-slate-50'}`}>👁️ Visualizar</button>
+                        <button onClick={salvarOrcamento} disabled={orcamento.itens.length === 0 || salvando} className={`w-full py-2.5 rounded-lg font-medium ${orcamento.itens.length === 0 ? 'bg-gray-200 text-gray-400' : 'bg-amber-500 text-white hover:bg-amber-600'}`}>{salvando ? '⏳...' : editandoId ? '💾 Atualizar' : '💾 Salvar'}</button>
+                        <button onClick={limparOrcamento} className="w-full py-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm">🗑️ Limpar</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB CATÁLOGO */}
+                {activeTab === 'catalogo' && (
+                  <div className="bg-white rounded-lg shadow">
+                    <div className="p-4 border-b flex gap-3">
+                      <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm" />
+                      <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
+                        <option value="todos">Todas</option>
+                        {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="max-h-[65vh] overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 sticky top-0"><tr><th className="text-left p-3">Código</th><th className="text-left p-3">Produto</th><th className="text-left p-3">Categoria</th><th className="text-right p-3">Custo</th><th></th></tr></thead>
+                        <tbody>
+                          {produtosFiltrados.map(p => (
+                            <tr key={p.codigo} className="border-t hover:bg-amber-50">
+                              <td className="p-3 text-xs font-mono text-gray-500">{p.codigo}</td>
+                              <td className="p-3 font-medium">{p.nome}</td>
+                              <td className="p-3"><span className="bg-gray-100 px-2 py-0.5 rounded text-xs">{p.categoria}</span></td>
+                              <td className="text-right p-3 font-semibold">{formatCurrency(p.preco)}</td>
+                              <td className="p-3"><button onClick={() => { setItemSelecionado(p); setPrecoVenda((p.preco * 2).toFixed(2)); setShowAddItem(true); }} className="bg-amber-100 text-amber-700 px-3 py-1 rounded text-xs font-medium hover:bg-amber-200">+ Add</button></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB HISTÓRICO */}
+                {activeTab === 'historico' && (
+                  <div className="space-y-4">
+                    {carregando ? <div className="bg-white rounded-lg shadow p-12 text-center text-gray-400">⏳ Carregando...</div> :
+                     historico.length === 0 ? <div className="bg-white rounded-lg shadow p-12 text-center text-gray-400">📁 Nenhum orçamento</div> :
+                     historico.map(orc => (
+                       <div key={orc.id} className="bg-white rounded-lg shadow p-4">
+                         <div className="flex justify-between items-start">
+                           <div>
+                             <div className="flex items-center gap-2 flex-wrap">
+                               <span className="bg-slate-800 text-white text-xs px-2 py-0.5 rounded font-mono">{orc.numero}</span>
+                               <span className="text-sm text-gray-500">{new Date(orc.dataSalvo).toLocaleDateString('pt-BR')}</span>
+                               {orc.userEmail && <span className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded">{orc.userEmail}</span>}
+                             </div>
+                             <h3 className="font-semibold text-lg mt-1">{orc.cliente.nome}</h3>
+                             {orc.cliente.telefone && <p className="text-sm text-gray-500">📱 {orc.cliente.telefone}</p>}
+                           </div>
+                           <div className="text-right">
+                             <p className="text-xs text-gray-500">Total</p>
+                             <p className="text-2xl font-bold text-amber-600">{formatCurrency(orc.totais?.total || 0)}</p>
+                           </div>
+                         </div>
+                         <div className="flex gap-2 mt-3 pt-3 border-t">
+                           <button onClick={() => editarOrcamento(orc)} className="text-sm bg-blue-100 text-blue-700 px-4 py-1.5 rounded-lg hover:bg-blue-200 font-medium">✏️ Editar</button>
+                           <button onClick={() => duplicarOrcamento(orc)} className="text-sm bg-amber-100 text-amber-700 px-4 py-1.5 rounded-lg hover:bg-amber-200 font-medium">📋 Duplicar</button>
+                           <button onClick={() => excluirOrcamento(orc.id)} className="text-sm bg-red-50 text-red-600 px-4 py-1.5 rounded-lg hover:bg-red-100">🗑️</button>
+                         </div>
+                       </div>
+                     ))
+                    }
+                  </div>
+                )}
+              </main>
+
+              {/* Modal Add Item */}
+              {showAddItem && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+                    <div className="p-4 border-b bg-slate-800 text-white"><h3 className="text-lg font-semibold">Adicionar Item</h3></div>
+                    <div className="p-4 overflow-y-auto max-h-[60vh]">
+                      {!itemSelecionado ? (
+                        <>
+                          <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border rounded-lg px-3 py-2 mb-3" autoFocus />
+                          <div className="space-y-1 max-h-80 overflow-y-auto">
+                            {produtosFiltrados.slice(0,20).map(p => (
+                              <div key={p.codigo} onClick={() => { setItemSelecionado(p); setPrecoVenda((p.preco * 2).toFixed(2)); setDescricaoItem(p.nome); }} className="p-3 hover:bg-amber-50 cursor-pointer rounded-lg">
+                                <div className="flex justify-between"><span className="font-medium">{p.nome}</span><span className="text-gray-500 text-sm">{formatCurrency(p.preco)}</span></div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                            <p className="font-semibold">{itemSelecionado.nome}</p>
+                            <p className="text-sm text-gray-500">Custo: {formatCurrency(itemSelecionado.preco)}</p>
+                          </div>
+                          <div><label className="text-sm font-medium block mb-1">Descrição</label><input type="text" value={descricaoItem} onChange={(e) => setDescricaoItem(e.target.value)} className="w-full border rounded-lg px-3 py-2" /></div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div><label className="text-sm font-medium block mb-1">Quantidade</label><input type="number" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center" min="0.5" step="0.5" /></div>
+                            <div><label className="text-sm font-medium block mb-1">Preço Venda</label><input type="number" value={precoVenda} onChange={(e) => setPrecoVenda(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center" /></div>
+                          </div>
+                          <div className="bg-slate-800 text-white p-4 rounded-lg text-center">
+                            <p className="text-gray-300 text-sm">Subtotal</p>
+                            <p className="text-2xl font-bold text-amber-400">{formatCurrency((parseFloat(precoVenda) || 0) * (parseFloat(quantidade) || 0))}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 border-t bg-gray-50 flex gap-3">
+                      <button onClick={() => { setShowAddItem(false); setItemSelecionado(null); setSearchTerm(''); setQuantidade(1); setPrecoVenda(''); setDescricaoItem(''); }} className="flex-1 py-2.5 border rounded-lg text-gray-600 hover:bg-gray-100">{itemSelecionado ? '← Voltar' : 'Cancelar'}</button>
+                      {itemSelecionado && <button onClick={adicionarItem} className="flex-1 py-2.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">✓ Adicionar</button>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Preview/PDF */}
+              {showPreview && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-auto">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+                    <div className="p-4 border-b bg-slate-800 text-white flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">📄 Orçamento</h3>
+                      <div className="flex gap-2">
+                        <button onClick={gerarPDF} disabled={gerando} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">{gerando ? '⏳...' : '📥 PDF'}</button>
+                        <button onClick={() => setShowPreview(false)} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm">✕</button>
+                      </div>
+                    </div>
+                    <div className="overflow-auto p-4 bg-gray-200 flex-1">
+                      <div ref={pdfRef} className="bg-white shadow-lg mx-auto" style={{ width: '210mm', padding: '12mm 15mm' }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', paddingBottom: '15px', borderBottom: '2px solid #D4AF37' }}>
+                          <div style={{ width: '120px', height: '60px', overflow: 'hidden' }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="400 1100 2200 1000" width="120" height="60">
+                              <path fill="#d4af37" d="M490.73,1613.42c69.93-22.03,141.23-39.62,213.39-52.63,72.31-13.03,145.42-21.39,218.8-25.1,73.69-3.73,147.54-2.62,221.11,2.88,74.09,5.54,147.79,15.19,221.18,26.63,74.1,11.55,147.91,24.87,221.82,37.59,73.83,12.71,147.8,24.79,222.15,34.04,66.04,8.21,132.38,13.91,198.92,15.53,65.01,1.58,130.18-.59,194.82-7.87,63.76-7.18,127.05-19.13,188.52-37.67,60.63-18.29,119.55-42.96,174.36-74.77,13.47-7.82,26.67-16.07,39.61-24.73,10.64-7.12.64-24.45-10.09-17.27-52.24,34.95-108.88,62.9-168.06,83.98-59.91,21.34-122.1,35.96-184.96,45.33-63.57,9.48-127.97,13.39-192.22,13.49-64.72.1-129.42-3.77-193.77-10.57-73.73-7.8-147.05-19.06-220.16-31.31-73.66-12.35-147.15-25.74-220.85-37.85-73.8-12.13-147.86-23.01-222.32-30.29-73.67-7.21-147.66-10.56-221.68-8.89-73.67,1.67-147.2,8.1-220.08,18.95-72.23,10.76-143.78,26.05-214.08,45.82-17.33,4.87-34.57,10.03-51.74,15.44-12.23,3.85-7.01,23.17,5.32,19.29h0Z"/>
+                              <path fill="#d4af37" d="M490.73,1668.64c69.93-22.03,141.23-39.62,213.39-52.63,72.31-13.03,145.42-21.39,218.8-25.1,73.69-3.73,147.54-2.62,221.11,2.88,74.09,5.54,147.79,15.19,221.18,26.63,74.1,11.55,147.91,24.87,221.82,37.59,73.83,12.71,147.8,24.79,222.15,34.04,66.04,8.21,132.38,13.91,198.92,15.53,65.01,1.58,130.18-.59,194.82-7.87,63.76-7.18,127.05-19.13,188.52-37.67,60.63-18.29,119.55-42.96,174.36-74.77,13.47-7.82,26.67-16.07,39.61-24.73,10.64-7.12.64-24.45-10.09-17.27-52.24,34.95-108.88,62.9-168.06,83.98-59.91,21.34-122.1,35.96-184.96,45.33-63.57,9.48-127.97,13.39-192.22,13.49-64.72.1-129.42-3.77-193.77-10.57-73.73-7.8-147.05-19.06-220.16-31.31-73.66-12.35-147.15-25.74-220.85-37.85-73.8-12.13-147.86-23.01-222.32-30.29-73.67-7.21-147.66-10.56-221.68-8.89-73.67,1.67-147.2,8.1-220.08,18.95-72.23,10.76-143.78,26.05-214.08,45.82-17.33,4.87-34.57,10.03-51.74,15.44-12.23,3.85-7.01,23.17,5.32,19.29h0Z"/>
+                              <path fill="#d4af37" d="M490.73,1723.92c69.93-22.03,141.23-39.62,213.39-52.63,72.31-13.03,145.42-21.39,218.8-25.1,73.69-3.73,147.54-2.62,221.11,2.88,74.09,5.54,147.79,15.19,221.18,26.63,74.1,11.55,147.91,24.87,221.82,37.59,73.83,12.71,147.8,24.79,222.15,34.04,66.04,8.21,132.38,13.91,198.92,15.53,65.01,1.58,130.18-.59,194.82-7.87,63.76-7.18,127.05-19.13,188.52-37.67,60.63-18.29,119.55-42.96,174.36-74.77,13.47-7.82,26.67-16.07,39.61-24.73,10.64-7.12.64-24.45-10.09-17.27-52.24,34.95-108.88,62.9-168.06,83.98-59.91,21.34-122.1,35.96-184.96,45.33-63.57,9.48-127.97,13.39-192.22,13.49-64.72.1-129.42-3.77-193.77-10.57-73.73-7.8-147.05-19.06-220.16-31.31-73.66-12.35-147.15-25.74-220.85-37.85-73.8-12.13-147.86-23.01-222.32-30.29-73.67-7.21-147.66-10.56-221.68-8.89-73.67,1.67-147.2,8.1-220.08,18.95-72.23,10.76-143.78,26.05-214.08,45.82-17.33,4.87-34.57,10.03-51.74,15.44-12.23,3.85-7.01,23.17,5.32,19.29h0Z"/>
+                              <text style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '700px', fontWeight: '600', fill: '#1a2231' }} transform="translate(488.08 1440.83)"><tspan x="0" y="0">V</tspan><tspan x="411.6" y="0">elluxe</tspan></text>
+                              <text style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '300px', fontStyle: 'italic', fontWeight: '500', fill: '#1a2231' }} transform="translate(1217.13 1965.24)"><tspan x="0" y="0">D</tspan><tspan x="185.1" y="0">ecor</tspan></text>
+                            </svg>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a2231', margin: 0 }}>ORÇAMENTO</h2>
+                            <p style={{ fontSize: '14px', fontWeight: '600', color: '#D4AF37', margin: '5px 0 0 0' }}>{orcamento.numero}</p>
+                            <p style={{ fontSize: '11px', color: '#666', marginTop: '8px' }}>Data: {new Date(orcamento.data).toLocaleDateString('pt-BR')}<br/>Validade: {orcamento.validade} dias</p>
+                          </div>
+                        </div>
+                        {/* Cliente */}
+                        <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                          <h3 style={{ fontSize: '12px', fontWeight: '600', color: '#D4AF37', marginBottom: '10px', textTransform: 'uppercase' }}>Dados do Cliente</h3>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+                            <div><strong>Nome:</strong> {orcamento.cliente.nome}</div>
+                            <div><strong>Telefone:</strong> {orcamento.cliente.telefone}</div>
+                            {orcamento.cliente.email && <div><strong>E-mail:</strong> {orcamento.cliente.email}</div>}
+                          </div>
+                          {orcamento.cliente.endereco && <div style={{ marginTop: '10px', fontSize: '12px', borderTop: '1px solid #ddd', paddingTop: '10px' }}><strong>Endereço:</strong> {orcamento.cliente.endereco}, {orcamento.cliente.numero} {orcamento.cliente.bairro && `• ${orcamento.cliente.bairro}`} {orcamento.cliente.cidade && `• ${orcamento.cliente.cidade}/${orcamento.cliente.estado}`}</div>}
+                        </div>
+                        {/* Itens */}
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '20px' }}>
+                          <thead><tr style={{ backgroundColor: '#1a2231', color: 'white' }}><th style={{ padding: '10px', textAlign: 'left' }}>Item</th><th style={{ padding: '10px', textAlign: 'center', width: '60px' }}>Qtd</th><th style={{ padding: '10px', textAlign: 'right', width: '90px' }}>Unit.</th><th style={{ padding: '10px', textAlign: 'right', width: '90px' }}>Total</th></tr></thead>
+                          <tbody>{orcamento.itens.map((item, i) => <tr key={item.id} style={{ borderBottom: '1px solid #eee', backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa' }}><td style={{ padding: '10px' }}><strong>{item.descricao}</strong><br/><span style={{ color: '#888', fontSize: '10px' }}>{item.categoria}</span></td><td style={{ padding: '10px', textAlign: 'center' }}>{item.quantidade}</td><td style={{ padding: '10px', textAlign: 'right' }}>{formatCurrency(item.valorUnitario)}</td><td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(item.valorTotal)}</td></tr>)}</tbody>
+                        </table>
+                        {/* Totais */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                          <div style={{ width: '250px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #eee' }}><span>Subtotal:</span><span>{formatCurrency(totais.subtotalItens)}</span></div>
+                            {orcamento.custoMaoObra > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #eee' }}><span>Mão de Obra:</span><span>{formatCurrency(orcamento.custoMaoObra)}</span></div>}
+                            {orcamento.custoInstalacao > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #eee' }}><span>Instalação:</span><span>{formatCurrency(orcamento.custoInstalacao)}</span></div>}
+                            {orcamento.desconto > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '12px', color: '#dc2626', borderBottom: '1px solid #eee' }}><span>Desconto ({orcamento.desconto}%):</span><span>-{formatCurrency(totais.valorDesconto)}</span></div>}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', fontSize: '16px', fontWeight: '700', backgroundColor: '#1a2231', color: '#D4AF37', borderRadius: '6px', marginTop: '8px' }}><span>TOTAL:</span><span>{formatCurrency(totais.total)}</span></div>
+                          </div>
+                        </div>
+                        {/* Condições */}
+                        <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px', fontSize: '11px', marginBottom: '20px' }}>
+                          <h3 style={{ fontSize: '12px', fontWeight: '600', color: '#D4AF37', marginBottom: '10px', textTransform: 'uppercase' }}>Condições</h3>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div><strong>Pagamento:</strong> {orcamento.formaPagamento}</div>
+                            <div><strong>Prazo:</strong> {orcamento.prazoEntrega}</div>
+                            <div><strong>Garantia:</strong> {orcamento.garantia}</div>
+                            <div><strong>Validade:</strong> {orcamento.validade} dias</div>
+                          </div>
+                          {orcamento.observacoes && <div style={{ marginTop: '10px', borderTop: '1px solid #ddd', paddingTop: '10px' }}><strong>Obs:</strong> {orcamento.observacoes}</div>}
+                        </div>
+                        {/* Footer */}
+                        <div style={{ borderTop: '2px solid #D4AF37', paddingTop: '15px', textAlign: 'center', fontSize: '10px', color: '#888' }}>
+                          <p style={{ margin: '0 0 5px 0' }}><strong style={{ color: '#1a2231' }}>Velluxe Decor</strong> • Cortinas Sob Medida</p>
+                          <p style={{ margin: 0 }}>📍 Cascavel, PR • 📱 (45) 99811-3954 • 📧 velluxedecor@gmail.com</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // ==================== APP ====================
+        function App() {
+          const [user, setUser] = useState(null);
+          const [loading, setLoading] = useState(true);
+
+          useEffect(() => {
+            supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); setLoading(false); });
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setUser(session?.user ?? null); });
+            return () => subscription.unsubscribe();
+          }, []);
+
+          const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); };
+
+          if (loading) return <div className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center"><div className="text-center text-white"><h1 className="text-3xl font-serif mb-2">Velluxe Decor</h1><p className="text-amber-400">Carregando...</p></div></div>;
+          if (!user) return <LoginScreen onLogin={setUser} />;
+          return <VelluxeOrcamentos user={user} onLogout={handleLogout} />;
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "velluxe-orcamentos",
+  "version": "2.0.0",
+  "description": "Sistema de Orçamentos Velluxe Decor com Supabase",
+  "scripts": {
+    "start": "npx serve ."
+  }
+}
