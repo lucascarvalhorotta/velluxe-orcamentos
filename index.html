@@ -31,6 +31,64 @@
         // ==================== BASE DE PRODUTOS ====================
         const produtosBase = {
           tecidos: [
+            // --- PERSIANAS VERTICAIS TRANSLÚCIDAS ---
+    { codigo: 'V-FLU', nome: 'Vertical Fluence', categoria: 'Vertical Translúcida', largura: 0.09, preco: 65.90, unidade: 'm2' },
+    { codigo: 'V-NUA', nome: 'Vertical Nuance Premium / Contraste', categoria: 'Vertical Translúcida', largura: 0.09, preco: 69.90, unidade: 'm2' },
+    { codigo: 'V-ATE', nome: 'Vertical Atenas / Grécia', categoria: 'Vertical Translúcida', largura: 0.09, preco: 85.90, unidade: 'm2' },
+    { codigo: 'V-SAL', nome: 'Vertical Salta', categoria: 'Vertical Translúcida', largura: 0.09, preco: 88.90, unidade: 'm2' },
+    { codigo: 'V-PAR', nome: 'Vertical Paris / Madri / Turim / Veneza', categoria: 'Vertical Translúcida', largura: 0.09, preco: 97.90, unidade: 'm2' },
+    { codigo: 'V-SAN', nome: 'Vertical San Marino / Firenze / Roma / Napoli', categoria: 'Vertical Translúcida', largura: 0.09, preco: 97.90, unidade: 'm2' },
+    { codigo: 'V-VER', nome: 'Vertical Verona / Potenza / Catania / Mosaico', categoria: 'Vertical Translúcida', largura: 0.09, preco: 99.90, unidade: 'm2' },
+    { codigo: 'V-NAT', nome: 'Vertical Natura / Cedro / Alfa', categoria: 'Vertical Translúcida', largura: 0.09, preco: 109.00, unidade: 'm2' },
+    { codigo: 'V-AMB', nome: 'Vertical New Arezzo Mescla Bege/Creme', categoria: 'Vertical Translúcida', largura: 0.09, preco: 115.00, unidade: 'm2' },
+
+    // --- PERSIANAS VERTICAIS BLACKOUT ---
+    { codigo: 'VBK-SOL', nome: 'Vertical BK Soleil', categoria: 'Vertical Blackout', largura: 0.09, preco: 134.00, unidade: 'm2' },
+    { codigo: 'VBK-SAL', nome: 'Vertical BK Salta', categoria: 'Vertical Blackout', largura: 0.09, preco: 139.00, unidade: 'm2' },
+    { codigo: 'VBK-ALF', nome: 'Vertical BK Alfa / Toscana / Berlim / Denver', categoria: 'Vertical Blackout', largura: 0.09, preco: 139.00, unidade: 'm2' },
+    { codigo: 'VBK-CED', nome: 'Vertical BK Cedro / Arezzo Mescla', categoria: 'Vertical Blackout', largura: 0.09, preco: 147.00, unidade: 'm2' },
+    { codigo: 'VBK-SOF', nome: 'Vertical BK Soft / Rustic', categoria: 'Vertical Blackout', largura: 0.09, preco: 159.00, unidade: 'm2' },
+
+    // --- PERSIANAS VERTICAIS PVC ---
+    { codigo: 'VPVC-SLI', nome: 'Vertical PVC Liso SLIM', categoria: 'Vertical PVC', largura: 0.09, preco: 119.00, unidade: 'm2' },
+    { codigo: 'VPVC-CON', nome: 'Vertical PVC Liso CONTRACT', categoria: 'Vertical PVC', largura: 0.09, preco: 129.00, unidade: 'm2' },
+    { codigo: 'VPVC-RUS', nome: 'Vertical PVC Rustic', categoria: 'Vertical PVC', largura: 0.09, preco: 139.00, unidade: 'm2' },
+    { codigo: 'VPVC-FRO', nome: 'Vertical PVC Frost', categoria: 'Vertical PVC', largura: 0.09, preco: 155.00, unidade: 'm2' },
+    { codigo: 'VPVC-MAD', nome: 'Vertical PVC Madeira', categoria: 'Vertical PVC', largura: 0.09, preco: 169.00, unidade: 'm2' },
+    { codigo: 'VPVC-CHE', nome: 'Vertical PVC Chelsea / Soho / Amsterdam', categoria: 'Vertical PVC', largura: 0.09, preco: 179.00, unidade: 'm2' },
+
+    // --- HORIZONTAIS 16MM / 25MM ---
+    { codigo: 'H25-LIS', nome: 'Horizontal 25mm Lisa (0.21)', categoria: 'Horizontal 25mm', largura: 1.00, preco: 129.90, unidade: 'm2' },
+    { codigo: 'H25-MET', nome: 'Horizontal 25mm Metalizada', categoria: 'Horizontal 25mm', largura: 1.00, preco: 133.90, unidade: 'm2' },
+    { codigo: 'H25-TEX', nome: 'Horizontal 25mm Texturizada', categoria: 'Horizontal 25mm', largura: 1.00, preco: 149.00, unidade: 'm2' },
+    { codigo: 'H25-PER', nome: 'Horizontal 25mm Perfurada / Perolizada', categoria: 'Horizontal 25mm', largura: 1.00, preco: 159.00, unidade: 'm2' },
+    { codigo: 'H25-MAD', nome: 'Horizontal 25mm Madeirada / Martelada / Printing', categoria: 'Horizontal 25mm', largura: 1.00, preco: 179.00, unidade: 'm2' },
+    { codigo: 'H25-SLI', nome: 'Horizontal 25mm Lisa SLIM (0.18)', categoria: 'Horizontal 25mm', largura: 1.00, preco: 119.90, unidade: 'm2' },
+    { codigo: 'H16-LIS', nome: 'Horizontal 16mm Lisa', categoria: 'Horizontal 16mm', largura: 1.00, preco: 159.90, unidade: 'm2' },
+    { codigo: 'H16-MET', nome: 'Horizontal 16mm Metalizada', categoria: 'Horizontal 16mm', largura: 1.00, preco: 163.90, unidade: 'm2' },
+
+    // --- HORIZONTAIS 50MM ---
+    { codigo: 'H50-ALC', nome: 'PH 50mm Alumínio c/ Cadarço', categoria: 'Horizontal 50mm', largura: 1.00, preco: 229.00, unidade: 'm2' },
+    { codigo: 'H50-ALF', nome: 'PH 50mm Alumínio c/ Fita Decorativa', categoria: 'Horizontal 50mm', largura: 1.00, preco: 269.00, unidade: 'm2' },
+    { codigo: 'H50-PVC', nome: 'PH 50mm PVC Liso c/ Cadarço', categoria: 'Horizontal 50mm', largura: 1.00, preco: 269.00, unidade: 'm2' },
+    { codigo: 'H50-MAD', nome: 'PH 50mm Madeira Sintética c/ Cadarço', categoria: 'Horizontal 50mm', largura: 1.00, preco: 447.00, unidade: 'm2' },
+
+    // --- ROLÔ ---
+    { codigo: 'RO-APO', nome: 'Rolô Apolo', categoria: 'Rolô', largura: 2.00, preco: 138.00, unidade: 'm2' },
+    { codigo: 'RO-MAL', nome: 'Rolô Malta', categoria: 'Rolô', largura: 2.80, preco: 139.00, unidade: 'm2' },
+    { codigo: 'RO-SCR3', nome: 'Rolô Screen 3%', categoria: 'Rolô Screen', largura: 3.00, preco: 159.00, unidade: 'm2' },
+    { codigo: 'RBK-LIS', nome: 'Rolô BK Lisboa', categoria: 'Rolô Blackout', largura: 2.80, preco: 185.00, unidade: 'm2' },
+    { codigo: 'RBK-PRE', nome: 'Rolô BK Prestige', categoria: 'Rolô Blackout', largura: 2.80, preco: 198.00, unidade: 'm2' },
+
+    // --- DOUBLE VISION ---
+    { codigo: 'DV-STD', nome: 'Double Vision Translúcida', categoria: 'Double Vision', largura: 2.25, preco: 235.00, unidade: 'm2' },
+    { codigo: 'DV-MAG', nome: 'Double Vision Magia Semi-BK', categoria: 'Double Vision', largura: 2.80, preco: 435.00, unidade: 'm2' },
+    { codigo: 'DV-SHA', nome: 'Shangrila White', categoria: 'Double Vision', largura: 3.00, preco: 588.00, unidade: 'm2' },
+
+    // --- ROMANA ---
+    { codigo: 'RM-APO', nome: 'Romana Apolo', categoria: 'Romana', largura: 2.00, preco: 172.00, unidade: 'm2' },
+    { codigo: 'RM-SCR3', nome: 'Romana Screen 3%', categoria: 'Romana', largura: 3.00, preco: 198.00, unidade: 'm2' },
+    { codigo: 'RBK-ROM', nome: 'Romana BK Lisboa', categoria: 'Romana Blackout', largura: 2.80, preco: 232.00, unidade: 'm2' },  
             { codigo: '4001', nome: 'Semi Blackout Marfim', categoria: 'Blackout', largura: 2.80, preco: 25.10, unidade: 'metro' },
             { codigo: '4002', nome: 'Semi Blackout Cinza Escuro', categoria: 'Blackout', largura: 2.80, preco: 25.10, unidade: 'metro' },
             { codigo: '4004', nome: 'Semi Blackout Branco', categoria: 'Blackout', largura: 2.80, preco: 31.20, unidade: 'metro' },
@@ -96,6 +154,13 @@
             { codigo: '15735', nome: 'Boucle Resort Linho', categoria: 'Boucle', largura: 3.00, preco: 34.30, unidade: 'metro' },
           ],
           aviamentos: [
+            // --- ACESSÓRIOS DO PDF ---
+    { codigo: 'BD-ALU', nome: 'Bandô Alumínio Revestido', categoria: 'Bandô', preco: 35.00, unidade: 'm2' },
+    { codigo: 'BD-PVC', nome: 'Bandô PVC (Tabaco/Bege/Cinza)', categoria: 'Bandô', preco: 49.50, unidade: 'm2' },
+    { codigo: 'TRI-VER', nome: 'Trilho Vertical Frisado Montado', categoria: 'Trilho', preco: 69.00, unidade: 'metro' },
+    { codigo: 'AFA-CUR', nome: 'Afastador Curto 5x5 (Branco)', categoria: 'Suporte', preco: 3.95, unidade: 'unidade' },
+    { codigo: 'AFA-LON', nome: 'Afastador Longo 5x7 (Branco)', categoria: 'Suporte', preco: 4.95, unidade: 'unidade' },
+    { codigo: 'BOX-90', nome: 'Caixa Box 90mm (Branca)', categoria: 'Rolô', preco: 148.00, unidade: 'metro' },
             { codigo: 'TR-S', nome: 'Trilho Suiço Simples', categoria: 'Trilho', preco: 6.00, unidade: 'metro' },
             { codigo: 'TR-SA', nome: 'Trilho Suiço Simples c/ Aba', categoria: 'Trilho', preco: 9.65, unidade: 'metro' },
             { codigo: 'TR-D', nome: 'Trilho Suiço Duplo', categoria: 'Trilho', preco: 19.20, unidade: 'metro' },
