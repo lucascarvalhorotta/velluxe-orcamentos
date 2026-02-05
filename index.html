@@ -14,6 +14,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .font-serif { font-family: 'Cormorant Garamond', serif; }
+        .pdf-content { height: auto !important; overflow: visible !important; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -31,7 +32,6 @@
         // ==================== BASE DE PRODUTOS ====================
         const produtosBase = {
           tecidos: [
-            // --- PERSIANAS VERTICAIS TRANSLÚCIDAS ---
     { codigo: 'V-FLU', nome: 'Persiana Vertical Fluence', categoria: 'Vertical Translúcida', largura: 0.09, preco: 65.90, unidade: 'm2' },
     { codigo: 'V-NUA', nome: 'Persiana Vertical Nuance Premium / Contraste', categoria: 'Vertical Translúcida', largura: 0.09, preco: 69.90, unidade: 'm2' },
     { codigo: 'V-ATE', nome: 'Persiana Vertical Atenas / Grécia', categoria: 'Vertical Translúcida', largura: 0.09, preco: 85.90, unidade: 'm2' },
@@ -41,23 +41,17 @@
     { codigo: 'V-VER', nome: 'Persiana Vertical Verona / Potenza / Catania / Mosaico', categoria: 'Vertical Translúcida', largura: 0.09, preco: 99.90, unidade: 'm2' },
     { codigo: 'V-NAT', nome: 'Persiana Vertical Natura / Cedro / Alfa', categoria: 'Vertical Translúcida', largura: 0.09, preco: 109.00, unidade: 'm2' },
     { codigo: 'V-AMB', nome: 'Persiana Vertical New Arezzo Mescla Bege/Creme', categoria: 'Vertical Translúcida', largura: 0.09, preco: 115.00, unidade: 'm2' },
-
-    // --- PERSIANAS VERTICAIS BLACKOUT ---
     { codigo: 'VBK-SOL', nome: 'Persiana Vertical BK Soleil', categoria: 'Vertical Blackout', largura: 0.09, preco: 134.00, unidade: 'm2' },
     { codigo: 'VBK-SAL', nome: 'Persiana Vertical BK Salta', categoria: 'Vertical Blackout', largura: 0.09, preco: 139.00, unidade: 'm2' },
     { codigo: 'VBK-ALF', nome: 'Persiana Vertical BK Alfa / Toscana / Berlim / Denver', categoria: 'Vertical Blackout', largura: 0.09, preco: 139.00, unidade: 'm2' },
     { codigo: 'VBK-CED', nome: 'Persiana Vertical BK Cedro / Arezzo Mescla', categoria: 'Vertical Blackout', largura: 0.09, preco: 147.00, unidade: 'm2' },
     { codigo: 'VBK-SOF', nome: 'Persiana Vertical BK Soft / Rustic', categoria: 'Vertical Blackout', largura: 0.09, preco: 159.00, unidade: 'm2' },
-
-    // --- PERSIANAS VERTICAIS PVC ---
     { codigo: 'VPVC-SLI', nome: 'Persiana Vertical PVC Liso SLIM', categoria: 'Vertical PVC', largura: 0.09, preco: 119.00, unidade: 'm2' },
     { codigo: 'VPVC-CON', nome: 'Persiana Vertical PVC Liso CONTRACT', categoria: 'Vertical PVC', largura: 0.09, preco: 129.00, unidade: 'm2' },
     { codigo: 'VPVC-RUS', nome: 'Persiana Vertical PVC Rustic', categoria: 'Vertical PVC', largura: 0.09, preco: 139.00, unidade: 'm2' },
     { codigo: 'VPVC-FRO', nome: 'Persiana Vertical PVC Frost', categoria: 'Vertical PVC', largura: 0.09, preco: 155.00, unidade: 'm2' },
     { codigo: 'VPVC-MAD', nome: 'Persiana Vertical PVC Madeira', categoria: 'Vertical PVC', largura: 0.09, preco: 169.00, unidade: 'm2' },
     { codigo: 'VPVC-CHE', nome: 'Persiana Vertical PVC Chelsea / Soho / Amsterdam', categoria: 'Vertical PVC', largura: 0.09, preco: 179.00, unidade: 'm2' },
-
-    // --- HORIZONTAIS 16MM / 25MM ---
     { codigo: 'H25-LIS', nome: 'Persiana Horizontal 25mm Lisa (0.21)', categoria: 'Horizontal 25mm', largura: 1.00, preco: 129.90, unidade: 'm2' },
     { codigo: 'H25-MET', nome: 'Persiana Horizontal 25mm Metalizada', categoria: 'Horizontal 25mm', largura: 1.00, preco: 133.90, unidade: 'm2' },
     { codigo: 'H25-TEX', nome: 'Persiana Horizontal 25mm Texturizada', categoria: 'Horizontal 25mm', largura: 1.00, preco: 149.00, unidade: 'm2' },
@@ -66,26 +60,18 @@
     { codigo: 'H25-SLI', nome: 'Persiana Horizontal 25mm Lisa SLIM (0.18)', categoria: 'Horizontal 25mm', largura: 1.00, preco: 119.90, unidade: 'm2' },
     { codigo: 'H16-LIS', nome: 'Persiana Horizontal 16mm Lisa', categoria: 'Horizontal 16mm', largura: 1.00, preco: 159.90, unidade: 'm2' },
     { codigo: 'H16-MET', nome: 'Persiana Horizontal 16mm Metalizada', categoria: 'Horizontal 16mm', largura: 1.00, preco: 163.90, unidade: 'm2' },
-
-    // --- HORIZONTAIS 50MM ---
     { codigo: 'H50-ALC', nome: 'Persiana PH 50mm Alumínio c/ Cadarço', categoria: 'Horizontal 50mm', largura: 1.00, preco: 229.00, unidade: 'm2' },
     { codigo: 'H50-ALF', nome: 'Persiana PH 50mm Alumínio c/ Fita Decorativa', categoria: 'Horizontal 50mm', largura: 1.00, preco: 269.00, unidade: 'm2' },
     { codigo: 'H50-PVC', nome: 'Persiana PH 50mm PVC Liso c/ Cadarço', categoria: 'Horizontal 50mm', largura: 1.00, preco: 269.00, unidade: 'm2' },
     { codigo: 'H50-MAD', nome: 'Persiana PH 50mm Madeira Sintética c/ Cadarço', categoria: 'Horizontal 50mm', largura: 1.00, preco: 447.00, unidade: 'm2' },
-
-    // --- ROLÔ ---
     { codigo: 'RO-APO', nome: 'Persiana Rolô Apolo', categoria: 'Rolô', largura: 2.00, preco: 138.00, unidade: 'm2' },
     { codigo: 'RO-MAL', nome: 'Persiana Rolô Malta', categoria: 'Rolô', largura: 2.80, preco: 139.00, unidade: 'm2' },
     { codigo: 'RO-SCR3', nome: 'Persiana Rolô Screen 3%', categoria: 'Rolô Screen', largura: 3.00, preco: 159.00, unidade: 'm2' },
     { codigo: 'RBK-LIS', nome: 'Persiana Rolô BK Lisboa', categoria: 'Rolô Blackout', largura: 2.80, preco: 185.00, unidade: 'm2' },
     { codigo: 'RBK-PRE', nome: 'Persiana Rolô BK Prestige', categoria: 'Rolô Blackout', largura: 2.80, preco: 198.00, unidade: 'm2' },
-
-    // --- DOUBLE VISION ---
     { codigo: 'DV-STD', nome: 'Persiana Double Vision Translúcida', categoria: 'Double Vision', largura: 2.25, preco: 235.00, unidade: 'm2' },
     { codigo: 'DV-MAG', nome: 'Persiana Double Vision Magia Semi-BK', categoria: 'Double Vision', largura: 2.80, preco: 435.00, unidade: 'm2' },
     { codigo: 'DV-SHA', nome: 'Persiana Shangrila White', categoria: 'Double Vision', largura: 3.00, preco: 588.00, unidade: 'm2' },
-
-    // --- ROMANA ---
     { codigo: 'RM-APO', nome: 'Persiana Romana Apolo', categoria: 'Romana', largura: 2.00, preco: 172.00, unidade: 'm2' },
     { codigo: 'RM-SCR3', nome: 'Persiana Romana Screen 3%', categoria: 'Romana', largura: 3.00, preco: 198.00, unidade: 'm2' },
     { codigo: 'RBK-ROM', nome: 'Persiana Romana BK Lisboa', categoria: 'Romana Blackout', largura: 2.80, preco: 232.00, unidade: 'm2' },  
@@ -155,7 +141,6 @@
             { codigo: '15735', nome: 'Boucle Resort Linho', categoria: 'Boucle', largura: 3.00, preco: 34.30, unidade: 'metro' },
           ],
           aviamentos: [
-            // --- ACESSÓRIOS DO PDF ---
     { codigo: 'BD-ALU', nome: 'Bandô Alumínio Revestido', categoria: 'Bandô', preco: 35.00, unidade: 'm2' },
     { codigo: 'BD-PVC', nome: 'Bandô PVC (Tabaco/Bege/Cinza)', categoria: 'Bandô', preco: 49.50, unidade: 'm2' },
     { codigo: 'TRI-VER', nome: 'Trilho Vertical Frisado Montado', categoria: 'Trilho', preco: 69.00, unidade: 'metro' },
@@ -279,7 +264,7 @@
           const [showAddItem, setShowAddItem] = useState(false);
           const [itemSelecionado, setItemSelecionado] = useState(null);
           const [quantidade, setQuantidade] = useState(1);
-          const [precoVenda, setPrecoVenda] = useState('');
+          const [custoUnitario, setCustoUnitario] = useState(''); // MUDANÇA: Estado para CUSTO
           const [descricaoItem, setDescricaoItem] = useState('');
           const [gerando, setGerando] = useState(false);
           const [salvando, setSalvando] = useState(false);
@@ -335,31 +320,39 @@
             return matchSearch && matchCategoria;
           });
 
+          // ========== NOVA LÓGICA DE TOTAIS (Markup Global com Serviços Embutidos) ==========
           const calcularTotais = () => {
             const custoMateriais = orcamento.itens.reduce((acc, item) => acc + ((item.precoCusto || 0) * item.quantidade), 0);
-            const subtotalItens = orcamento.itens.reduce((acc, item) => acc + item.valorTotal, 0);
-            const custoTotal = custoMateriais + orcamento.custoMaoObra + orcamento.custoInstalacao;
+            const custoServicos = orcamento.custoMaoObra + orcamento.custoInstalacao;
+            const custoTotal = custoMateriais + custoServicos;
+            
+            // Aplica Markup no Custo Total (Materiais + Serviços)
             const precoVendaBruto = custoTotal * (1 + orcamento.markup / 100);
+            
+            // Desconto
             const valorDesconto = precoVendaBruto * (orcamento.desconto / 100);
             const total = precoVendaBruto - valorDesconto;
+            
             const lucro = total - custoTotal;
             const margem = total > 0 ? (lucro / total) * 100 : 0;
-            return { custoMateriais, subtotalItens, custoTotal, precoVendaBruto, valorDesconto, total, lucro, margem };
+            
+            return { custoMateriais, custoTotal, precoVendaBruto, valorDesconto, total, lucro, margem };
           };
           const totais = calcularTotais();
 
           const adicionarItem = () => {
             if (!itemSelecionado || quantidade <= 0) return;
+            const custoFinal = parseFloat(custoUnitario) || itemSelecionado.preco;
             const novoItem = {
               id: Date.now(), codigo: itemSelecionado.codigo, nome: itemSelecionado.nome,
               descricao: descricaoItem || itemSelecionado.nome, categoria: itemSelecionado.categoria,
               quantidade: parseFloat(quantidade), unidade: itemSelecionado.unidade,
-              precoCusto: itemSelecionado.preco,
-              valorUnitario: parseFloat(precoVenda) || itemSelecionado.preco,
-              valorTotal: (parseFloat(precoVenda) || itemSelecionado.preco) * parseFloat(quantidade)
+              precoCusto: custoFinal, // AQUI É O PULO DO GATO: Salva o custo editado
+              valorUnitario: custoFinal, // Apenas para referência interna
+              valorTotal: custoFinal * parseFloat(quantidade) // Apenas para referência interna
             };
             setOrcamento({ ...orcamento, itens: [...orcamento.itens, novoItem] });
-            setShowAddItem(false); setItemSelecionado(null); setQuantidade(1); setPrecoVenda(''); setDescricaoItem('');
+            setShowAddItem(false); setItemSelecionado(null); setQuantidade(1); setCustoUnitario(''); setDescricaoItem('');
           };
 
           const removerItem = (itemId) => setOrcamento({ ...orcamento, itens: orcamento.itens.filter(i => i.id !== itemId) });
@@ -371,8 +364,9 @@
               margin: 0,
               filename: `Orcamento_${orcamento.numero}_${orcamento.cliente.nome.replace(/\s+/g, '_') || 'Cliente'}.pdf`,
               image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { scale: 2, useCORS: true },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+              html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, 
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             try { await html2pdf().set(opt).from(pdfRef.current).save(); }
             catch (e) { alert('Erro ao gerar PDF'); }
@@ -407,6 +401,20 @@
           const editarOrcamento = (orc) => { setOrcamento({ ...orc, itens: orc.itens.map(i => ({ ...i, id: Date.now() + Math.random() })) }); setEditandoId(orc.id); setActiveTab('orcamento'); };
           const duplicarOrcamento = (orc) => { setOrcamento({ ...orc, numero: gerarNumeroOrcamento(), data: new Date().toISOString().split('T')[0], itens: orc.itens.map(i => ({ ...i, id: Date.now() + Math.random() })) }); setEditandoId(null); setActiveTab('orcamento'); };
           const excluirOrcamento = async (id) => { if (confirm('Excluir permanentemente?')) { await supabase.from('orcamentos').delete().eq('id', id); await carregarHistorico(); } };
+
+          // === FUNÇÃO HELPER PARA CÁLCULO DE ITEM NA TELA E PDF ===
+          const calcularPrecoFinalItem = (item) => {
+             const itemMaterialCost = item.precoCusto * item.quantidade;
+             const totalMaterialCost = orcamento.itens.reduce((acc, curr) => acc + (curr.precoCusto * curr.quantidade), 0);
+             const totalServiceCost = orcamento.custoMaoObra + orcamento.custoInstalacao;
+             
+             const serviceShare = totalMaterialCost > 0 
+               ? (itemMaterialCost / totalMaterialCost) * totalServiceCost 
+               : 0;
+
+             const itemBaseCost = itemMaterialCost + serviceShare;
+             return itemBaseCost * (1 + orcamento.markup / 100) * (1 - orcamento.desconto / 100);
+          };
 
           return (
             <div className="min-h-screen bg-gray-100">
@@ -488,17 +496,19 @@
                           <div className="text-center py-8 text-gray-400 border-2 border-dashed rounded-lg">Nenhum item</div>
                         ) : (
                           <table className="w-full text-sm">
-                            <thead className="bg-gray-50"><tr><th className="text-left p-2">Item</th><th className="text-center p-2">Qtd</th><th className="text-right p-2">Unit.</th><th className="text-right p-2">Total</th><th></th></tr></thead>
+                            <thead className="bg-gray-50"><tr><th className="text-left p-2">Item</th><th className="text-center p-2">Qtd</th><th className="text-right p-2">Total Final</th><th></th></tr></thead>
                             <tbody>
-                              {orcamento.itens.map(item => (
+                              {orcamento.itens.map(item => {
+                                const finalPrice = calcularPrecoFinalItem(item);
+                                return (
                                 <tr key={item.id} className="border-t">
                                   <td className="p-2"><p className="font-medium">{item.descricao}</p><p className="text-xs text-gray-500">{item.categoria}</p></td>
                                   <td className="text-center p-2">{item.quantidade}</td>
-                                  <td className="text-right p-2">{formatCurrency(item.valorUnitario)}</td>
-                                  <td className="text-right p-2 font-semibold text-amber-600">{formatCurrency(item.valorTotal)}</td>
+                                  <td className="text-right p-2 font-semibold text-amber-600">{formatCurrency(finalPrice)}</td>
                                   <td className="p-2"><button onClick={() => removerItem(item.id)} className="text-red-400 hover:text-red-600">✕</button></td>
                                 </tr>
-                              ))}
+                                )
+                              })}
                             </tbody>
                           </table>
                         )}
@@ -526,14 +536,14 @@
                       <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg shadow-lg p-4 text-white">
                         <h2 className="font-semibold mb-4 text-amber-400">💰 Resumo</h2>
                         <div className="space-y-2 text-sm">
-                          <div className="flex justify-between"><span className="text-gray-400">Materiais:</span><span>{formatCurrency(totais.custoMateriais)}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-400">Materiais (Custo):</span><span>{formatCurrency(totais.custoMateriais)}</span></div>
                           <div className="flex justify-between"><span className="text-gray-400">Mão de Obra:</span><span>{formatCurrency(orcamento.custoMaoObra)}</span></div>
                           <div className="flex justify-between"><span className="text-gray-400">Instalação:</span><span>{formatCurrency(orcamento.custoInstalacao)}</span></div>
                           <div className="border-t border-gray-600 my-2"></div>
                           <div className="flex justify-between font-medium"><span>CUSTO:</span><span className="text-red-400">{formatCurrency(totais.custoTotal)}</span></div>
                         </div>
                         <div className="mt-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-lg">
-                          <p className="text-xs text-amber-300">VENDA</p>
+                          <p className="text-xs text-amber-300">VENDA (Final)</p>
                           <p className="text-3xl font-bold text-amber-400">{formatCurrency(totais.total)}</p>
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -570,7 +580,7 @@
                               <td className="p-3 font-medium">{p.nome}</td>
                               <td className="p-3"><span className="bg-gray-100 px-2 py-0.5 rounded text-xs">{p.categoria}</span></td>
                               <td className="text-right p-3 font-semibold">{formatCurrency(p.preco)}</td>
-                              <td className="p-3"><button onClick={() => { setItemSelecionado(p); setPrecoVenda((p.preco * 2).toFixed(2)); setShowAddItem(true); }} className="bg-amber-100 text-amber-700 px-3 py-1 rounded text-xs font-medium hover:bg-amber-200">+ Add</button></td>
+                              <td className="p-3"><button onClick={() => { setItemSelecionado(p); setCustoUnitario(p.preco); setShowAddItem(true); }} className="bg-amber-100 text-amber-700 px-3 py-1 rounded text-xs font-medium hover:bg-amber-200">+ Add</button></td>
                             </tr>
                           ))}
                         </tbody>
@@ -624,7 +634,7 @@
                           <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full border rounded-lg px-3 py-2 mb-3" autoFocus />
                           <div className="space-y-1 max-h-80 overflow-y-auto">
                             {produtosFiltrados.slice(0,20).map(p => (
-                              <div key={p.codigo} onClick={() => { setItemSelecionado(p); setPrecoVenda((p.preco * 2).toFixed(2)); setDescricaoItem(p.nome); }} className="p-3 hover:bg-amber-50 cursor-pointer rounded-lg">
+                              <div key={p.codigo} onClick={() => { setItemSelecionado(p); setCustoUnitario(p.preco); setDescricaoItem(p.nome); }} className="p-3 hover:bg-amber-50 cursor-pointer rounded-lg">
                                 <div className="flex justify-between"><span className="font-medium">{p.nome}</span><span className="text-gray-500 text-sm">{formatCurrency(p.preco)}</span></div>
                               </div>
                             ))}
@@ -634,22 +644,25 @@
                         <div className="space-y-4">
                           <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
                             <p className="font-semibold">{itemSelecionado.nome}</p>
-                            <p className="text-sm text-gray-500">Custo: {formatCurrency(itemSelecionado.preco)}</p>
+                            <p className="text-xs text-gray-500">Custo Base: {formatCurrency(itemSelecionado.preco)}</p>
                           </div>
                           <div><label className="text-sm font-medium block mb-1">Descrição</label><input type="text" value={descricaoItem} onChange={(e) => setDescricaoItem(e.target.value)} className="w-full border rounded-lg px-3 py-2" /></div>
                           <div className="grid grid-cols-2 gap-4">
                             <div><label className="text-sm font-medium block mb-1">Quantidade</label><input type="number" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center" min="0.5" step="0.5" /></div>
-                            <div><label className="text-sm font-medium block mb-1">Preço Venda</label><input type="number" value={precoVenda} onChange={(e) => setPrecoVenda(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center" /></div>
+                            <div>
+                              <label className="text-sm font-medium block mb-1 text-blue-600">Custo Unitário (Editável)</label>
+                              <input type="number" value={custoUnitario} onChange={(e) => setCustoUnitario(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center border-blue-300 bg-blue-50" />
+                            </div>
                           </div>
                           <div className="bg-slate-800 text-white p-4 rounded-lg text-center">
-                            <p className="text-gray-300 text-sm">Subtotal</p>
-                            <p className="text-2xl font-bold text-amber-400">{formatCurrency((parseFloat(precoVenda) || 0) * (parseFloat(quantidade) || 0))}</p>
+                            <p className="text-gray-300 text-xs">Simulação Venda (c/ Markup {orcamento.markup}%)</p>
+                            <p className="text-2xl font-bold text-amber-400">{formatCurrency((parseFloat(custoUnitario || 0) * (1 + orcamento.markup/100)) * parseFloat(quantidade))}</p>
                           </div>
                         </div>
                       )}
                     </div>
                     <div className="p-4 border-t bg-gray-50 flex gap-3">
-                      <button onClick={() => { setShowAddItem(false); setItemSelecionado(null); setSearchTerm(''); setQuantidade(1); setPrecoVenda(''); setDescricaoItem(''); }} className="flex-1 py-2.5 border rounded-lg text-gray-600 hover:bg-gray-100">{itemSelecionado ? '← Voltar' : 'Cancelar'}</button>
+                      <button onClick={() => { setShowAddItem(false); setItemSelecionado(null); setSearchTerm(''); setQuantidade(1); setCustoUnitario(''); setDescricaoItem(''); }} className="flex-1 py-2.5 border rounded-lg text-gray-600 hover:bg-gray-100">{itemSelecionado ? '← Voltar' : 'Cancelar'}</button>
                       {itemSelecionado && <button onClick={adicionarItem} className="flex-1 py-2.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">✓ Adicionar</button>}
                     </div>
                   </div>
@@ -668,7 +681,8 @@
                       </div>
                     </div>
                     <div className="overflow-auto p-4 bg-gray-200 flex-1">
-                      <div ref={pdfRef} className="bg-white shadow-lg mx-auto" style={{ width: '210mm', padding: '12mm 15mm' }}>
+                      {/* WRAPPER PRINCIPAL DO PDF COM MIN-HEIGHT AJUSTADO */}
+                      <div ref={pdfRef} className="bg-white shadow-lg mx-auto pdf-content" style={{ width: '210mm', minHeight: '297mm', padding: '12mm 15mm', backgroundColor: '#ffffff' }}>
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', paddingBottom: '15px', borderBottom: '2px solid #D4AF37' }}>
                           <div style={{ width: '120px', height: '60px', overflow: 'hidden' }}>
@@ -698,16 +712,22 @@
                         </div>
                         {/* Itens */}
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '20px' }}>
-                          <thead><tr style={{ backgroundColor: '#1a2231', color: 'white' }}><th style={{ padding: '10px', textAlign: 'left' }}>Item</th><th style={{ padding: '10px', textAlign: 'center', width: '60px' }}>Qtd</th><th style={{ padding: '10px', textAlign: 'right', width: '90px' }}>Unit.</th><th style={{ padding: '10px', textAlign: 'right', width: '90px' }}>Total</th></tr></thead>
-                          <tbody>{orcamento.itens.map((item, i) => <tr key={item.id} style={{ borderBottom: '1px solid #eee', backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa' }}><td style={{ padding: '10px' }}><strong>{item.descricao}</strong><br/><span style={{ color: '#888', fontSize: '10px' }}>{item.categoria}</span></td><td style={{ padding: '10px', textAlign: 'center' }}>{item.quantidade}</td><td style={{ padding: '10px', textAlign: 'right' }}>{formatCurrency(item.valorUnitario)}</td><td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(item.valorTotal)}</td></tr>)}</tbody>
+                          <thead><tr style={{ backgroundColor: '#1a2231', color: 'white' }}><th style={{ padding: '10px', textAlign: 'left' }}>Descrição</th><th style={{ padding: '10px', textAlign: 'right', width: '120px' }}>Valor Total</th></tr></thead>
+                          <tbody>
+                            {orcamento.itens.map((item, i) => {
+                                const finalPrice = calcularPrecoFinalItem(item);
+                                return (
+                                    <tr key={item.id} style={{ borderBottom: '1px solid #eee', backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                        <td style={{ padding: '10px' }}><strong>{item.descricao}</strong><br/><span style={{ color: '#888', fontSize: '10px' }}>{item.categoria}</span></td>
+                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(finalPrice)}</td>
+                                    </tr>
+                                );
+                            })}
+                          </tbody>
                         </table>
                         {/* Totais */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
                           <div style={{ width: '250px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #eee' }}><span>Subtotal:</span><span>{formatCurrency(totais.subtotalItens)}</span></div>
-                            {orcamento.custoMaoObra > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #eee' }}><span>Mão de Obra:</span><span>{formatCurrency(orcamento.custoMaoObra)}</span></div>}
-                            {orcamento.custoInstalacao > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #eee' }}><span>Instalação:</span><span>{formatCurrency(orcamento.custoInstalacao)}</span></div>}
-                            {orcamento.desconto > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '12px', color: '#dc2626', borderBottom: '1px solid #eee' }}><span>Desconto ({orcamento.desconto}%):</span><span>-{formatCurrency(totais.valorDesconto)}</span></div>}
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', fontSize: '16px', fontWeight: '700', backgroundColor: '#1a2231', color: '#D4AF37', borderRadius: '6px', marginTop: '8px' }}><span>TOTAL:</span><span>{formatCurrency(totais.total)}</span></div>
                           </div>
                         </div>
