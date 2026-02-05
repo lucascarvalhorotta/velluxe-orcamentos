@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Velluxe Decor - Sistema de Orçamentos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -14,7 +14,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .font-serif { font-family: 'Cormorant Garamond', serif; }
-        .pdf-content { height: auto !important; overflow: visible !important; }
+        /* Garante que o conteúdo do PDF não seja cortado */
+        .pdf-content { box-sizing: border-box; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -358,15 +359,23 @@
           const removerItem = (itemId) => setOrcamento({ ...orcamento, itens: orcamento.itens.filter(i => i.id !== itemId) });
           const atualizarCliente = (campo, valor) => setOrcamento({ ...orcamento, cliente: { ...orcamento.cliente, [campo]: valor } });
 
+          // CORREÇÃO CRÍTICA DO PDF NO IPHONE
           const gerarPDF = async () => {
             setGerando(true);
             const opt = {
-              margin: 0,
+              margin: [0, 0, 0, 0], // Margem Zero Explicita
               filename: `Orcamento_${orcamento.numero}_${orcamento.cliente.nome.replace(/\s+/g, '_') || 'Cliente'}.pdf`,
               image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, 
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+              html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                scrollY: 0,
+                scrollX: 0,
+                // ESSAS DUAS LINHAS SÃO CRUCIAIS PARA IOS
+                windowWidth: document.documentElement.offsetWidth,
+                windowHeight: document.documentElement.offsetHeight
+              }, 
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
             try { await html2pdf().set(opt).from(pdfRef.current).save(); }
             catch (e) { alert('Erro ao gerar PDF'); }
@@ -681,8 +690,8 @@
                       </div>
                     </div>
                     <div className="overflow-auto p-4 bg-gray-200 flex-1">
-                      {/* WRAPPER PRINCIPAL DO PDF COM MIN-HEIGHT AJUSTADO */}
-                      <div ref={pdfRef} className="bg-white shadow-lg mx-auto pdf-content" style={{ width: '210mm', minHeight: '297mm', padding: '12mm 15mm', backgroundColor: '#ffffff' }}>
+                      {/* WRAPPER PRINCIPAL DO PDF COM ALTURA AJUSTADA PARA A4 */}
+                      <div ref={pdfRef} className="bg-white shadow-lg mx-auto pdf-content" style={{ width: '210mm', minHeight: '296mm', padding: '12mm 15mm', backgroundColor: '#ffffff' }}>
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', paddingBottom: '15px', borderBottom: '2px solid #D4AF37' }}>
                           <div style={{ width: '120px', height: '60px', overflow: 'hidden' }}>
