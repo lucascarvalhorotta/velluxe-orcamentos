@@ -449,6 +449,7 @@
               // Aviamentos: DESCRIÇÃO PREÇO R$ ou DESCRIÇÃO R$ PREÇO ou DESCRIÇÃO PREÇO (sem R$)
               // Ex: ARGOLA 19MM PVC BRANCA / IMBUIA / PALHA 0,22 R$
               // Ex: ARGOLA 19MM PVC AÇO ESCOVADO 1,34
+              let contador = 1;
               linhas.forEach(linha => {
                 let nome = null;
                 let preco = null;
@@ -481,8 +482,11 @@
                 
                 // Valida e adiciona
                 if (nome && preco && !linha.toUpperCase().includes('DESCRIÇÃO') && !linha.toUpperCase().includes('VALOR') && nome.length > 3) {
-                  // Gera código automático baseado no nome (primeiros 15 chars, sem espaços)
-                  const codigoAuto = 'AV-' + nome.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                  // Gera código ÚNICO usando hash do nome completo + contador
+                  const hash = nome.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
+                  const codigoAuto = 'AV-' + Math.abs(hash).toString(36).toUpperCase().substring(0, 6) + contador.toString().padStart(3, '0');
+                  contador++;
+                  
                   produtos.push({
                     codigo: codigoAuto,
                     nome: nome,
@@ -494,12 +498,14 @@
                 }
               });
             } else if (tipo === 'persianas') {
-              // Persianas: NOME R$ PREÇO_VISTA R$ PREÇO_CARTAO m²
+              // Persianas: NOME R$ PREÇO_VISTA R$ PREÇO_CARTAO UNIDADE
               // Ex: Vertical - Fluence (linha sem desconto) Consultar Disponibilidade. R$ 65,90 R$ 73,22 m²
+              // Unidades aceitas: m², m2, MT, PÇ, UN, KIT, METRO
               // Pega o SEGUNDO preço (cartão 5x)
+              let contador = 1;
               linhas.forEach(linha => {
-                // Regex: captura nome, depois dois valores R$ X,XX e termina com m² ou m2
-                const match = linha.match(/^(.+?)\s+R\s*\$\s*([\d\.]+[,][\d]+)\s+R\s*\$\s*([\d\.]+[,][\d]+)\s*m[²2]\s*$/i);
+                // Regex: captura nome, depois dois valores R$ X,XX e termina com unidade
+                const match = linha.match(/^(.+?)\s+R\s*\$\s*([\d\.]+[,][\d]+)\s+R\s*\$\s*([\d\.]+[,][\d]+)\s*(m[²2]|MT|PÇ|UN|KIT|METRO)\s*$/i);
                 if (match) {
                   let nome = match[1].trim();
                   // Remove textos desnecessários
@@ -507,16 +513,27 @@
                   nome = nome.replace(/\s+/g, ' ').trim();
                   
                   const precoCartao = parseFloat(match[3].replace('.', '').replace(',', '.'));
+                  let unidadeOriginal = match[4].toUpperCase();
+                  
+                  // Normaliza unidades
+                  let unidade = 'un';
+                  if (unidadeOriginal === 'M²' || unidadeOriginal === 'M2') unidade = 'm2';
+                  else if (unidadeOriginal === 'MT' || unidadeOriginal === 'METRO') unidade = 'metro';
+                  else if (unidadeOriginal === 'PÇ' || unidadeOriginal === 'UN') unidade = 'un';
+                  else if (unidadeOriginal === 'KIT') unidade = 'kit';
                   
                   if (nome.length > 3 && precoCartao > 0) {
-                    // Gera código baseado no nome
-                    const codigoAuto = 'P-' + nome.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    // Gera código ÚNICO usando hash do nome completo + contador
+                    const hash = nome.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
+                    const codigoAuto = 'P-' + Math.abs(hash).toString(36).toUpperCase().substring(0, 8) + contador.toString().padStart(3, '0');
+                    contador++;
+                    
                     produtos.push({
                       codigo: codigoAuto,
                       nome: nome,
                       largura: null,
                       preco: precoCartao,
-                      unidade: 'm2',
+                      unidade: unidade,
                       categoria: 'Persiana'
                     });
                   }
@@ -534,8 +551,13 @@
             
             for (const prod of produtosParaImportar) {
               try {
-                // Verifica se produto já existe pelo código
-                const { data: existente } = await supabase.from('produtos').select('id').eq('codigo', prod.codigo).single();
+                // Verifica se produto já existe pelo código + fornecedor
+                const { data: existente } = await supabase
+                  .from('produtos')
+                  .select('id')
+                  .eq('codigo', prod.codigo)
+                  .eq('fornecedor_id', fornecedorId)
+                  .single();
                 
                 // Monta objeto limpo para o banco (sem campos extras)
                 const produtoData = {
@@ -550,17 +572,36 @@
                 };
                 
                 if (existente) {
+                  // Atualiza produto existente do mesmo fornecedor
                   const { error } = await supabase.from('produtos').update(produtoData).eq('id', existente.id);
                   if (error) { console.error('Erro update:', error); erros++; }
                   else { atualizados++; }
                 } else {
+                  // Insere novo produto (mesmo que exista código igual de outro fornecedor)
                   const { error } = await supabase.from('produtos').insert([produtoData]);
                   if (error) { console.error('Erro insert:', error); erros++; }
                   else { importados++; }
                 }
               } catch (err) {
-                console.error('Erro ao processar produto:', prod.codigo, err);
-                erros++;
+                // Erro no .single() significa que não existe - insere novo
+                try {
+                  const produtoData = {
+                    codigo: prod.codigo,
+                    nome: prod.nome,
+                    categoria: prod.categoria || 'Tecido',
+                    largura: prod.largura || null,
+                    preco: prod.preco || 0,
+                    unidade: prod.unidade || 'metro',
+                    fornecedor_id: fornecedorId,
+                    user_id: user.id
+                  };
+                  const { error } = await supabase.from('produtos').insert([produtoData]);
+                  if (error) { console.error('Erro insert:', error); erros++; }
+                  else { importados++; }
+                } catch (insertErr) {
+                  console.error('Erro ao inserir produto:', prod.codigo, insertErr);
+                  erros++;
+                }
               }
             }
             
