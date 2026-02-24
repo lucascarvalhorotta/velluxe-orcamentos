@@ -631,6 +631,22 @@
           };
           
           // ========== FUNÇÕES FINANCEIRAS ==========
+          // Helper para normalizar data para comparação (YYYY-MM-DD)
+          // Evita problemas de timezone extraindo apenas a parte da data
+          const normalizarData = (data) => {
+            if (!data) return '';
+            // Se é string, extrai apenas YYYY-MM-DD (antes do T)
+            if (typeof data === 'string') {
+              return data.substring(0, 10);
+            }
+            // Se é Date object, formata manualmente para evitar timezone
+            const d = new Date(data);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          };
+          
           const carregarDadosFinanceiros = async () => {
             const [trans, pagar, receber, cats] = await Promise.all([
               supabase.from('transacoes').select('*, categorias_financeiras(nome, cor)').order('data_transacao', { ascending: false }),
@@ -831,6 +847,13 @@
               cep: clienteOrcamento.cep || null
             };
             
+            // Se tem ID, atualiza diretamente
+            if (clienteOrcamento.id) {
+              await supabase.from('clientes').update(clienteData).eq('id', clienteOrcamento.id);
+              await carregarClientes();
+              return;
+            }
+            
             // Busca cliente existente por telefone ou CPF/CNPJ
             let clienteExistente = null;
             
@@ -860,6 +883,7 @@
             setOrcamento({
               ...orcamento,
               cliente: {
+                id: cliente.id,
                 nome: cliente.nome,
                 telefone: cliente.telefone || '',
                 email: cliente.email || '',
@@ -1010,6 +1034,7 @@
             const custoTotal = parseFloat(dadosEditados.custoTotal.toString().replace(',', '.')) || 0;
             const area = larg && alt ? larg * alt : dadosEditados.quantidade || 1;
             const custoUnit = area > 0 ? custoTotal / area : custoTotal;
+            const markupItem = dadosEditados.markupItem ? parseFloat(dadosEditados.markupItem) : null;
             
             const itensAtualizados = orcamento.itens.map(item => {
               if (item.id === itemEditando.id) {
@@ -1023,7 +1048,8 @@
                   medidaAltura: alt || null,
                   precoCusto: custoUnit,
                   valorUnitario: custoUnit,
-                  valorTotal: custoTotal
+                  valorTotal: custoTotal,
+                  markupItem: markupItem
                 };
               }
               return item;
@@ -1084,26 +1110,64 @@
               garantia: orcamento.garantia, totais: calcularTotais()
             };
             let result;
-            if (editandoId) { result = await supabase.from('orcamentos').update(dados).eq('id', editandoId); }
-            else { result = await supabase.from('orcamentos').insert([dados]); }
+            if (editandoId) { 
+              result = await supabase.from('orcamentos').update(dados).eq('id', editandoId); 
+            }
+            else { 
+              result = await supabase.from('orcamentos').insert([dados]); 
+            }
             if (result.error) { alert('Erro: ' + result.error.message); }
             else { 
               // Auto-cadastra ou atualiza o cliente
               await salvarOuAtualizarCliente(orcamento.cliente);
-              alert(editandoId ? 'Atualizado!' : 'Salvo!'); 
-              setEditandoId(null); 
-              await carregarHistorico(); 
+              await carregarHistorico();
+              
+              if (editandoId) {
+                alert('✅ Orçamento atualizado!');
+                // Mantém editandoId para continuar editando o mesmo orçamento
+              } else {
+                alert('✅ Orçamento salvo!');
+                // Limpa os dados e gera novo número para próximo orçamento
+                setOrcamento({ ...orcamentoVazio, numero: gerarNumeroOrcamento() });
+                setAmbienteAtual('');
+              }
             }
             setSalvando(false);
           };
 
           const novoOrcamento = () => {
             if (orcamento.itens.length > 0 && !confirm('Criar novo? Dados atuais serão perdidos.')) return;
-            setOrcamento({ ...orcamentoVazio, numero: gerarNumeroOrcamento() }); setEditandoId(null);
+            setOrcamento({ ...orcamentoVazio, numero: gerarNumeroOrcamento() }); 
+            setEditandoId(null);
+            setAmbienteAtual('');
           };
-          const limparOrcamento = () => { if (confirm('Limpar dados?')) setOrcamento({ ...orcamentoVazio, numero: orcamento.numero }); };
-          const editarOrcamento = (orc) => { setOrcamento({ ...orc, status: orc.status || 'rascunho', itens: orc.itens.map(i => ({ ...i, id: Date.now() + Math.random() })) }); setEditandoId(orc.id); setActiveTab('orcamento'); };
-          const duplicarOrcamento = (orc) => { setOrcamento({ ...orc, numero: gerarNumeroOrcamento(), data: new Date().toISOString().split('T')[0], status: 'rascunho', itens: orc.itens.map(i => ({ ...i, id: Date.now() + Math.random() })) }); setEditandoId(null); setActiveTab('orcamento'); };
+          const limparOrcamento = () => { 
+            if (confirm('Limpar dados e criar novo orçamento?')) {
+              setOrcamento({ ...orcamentoVazio, numero: gerarNumeroOrcamento() }); 
+              setEditandoId(null);
+              setAmbienteAtual('');
+            }
+          };
+          const editarOrcamento = (orc) => { 
+            setOrcamento({ 
+              ...orc, 
+              status: orc.status || 'rascunho', 
+              itens: orc.itens.map(i => ({ ...i, id: i.id || Date.now() + Math.random() })) 
+            }); 
+            setEditandoId(orc.id); 
+            setActiveTab('orcamento'); 
+          };
+          const duplicarOrcamento = (orc) => { 
+            setOrcamento({ 
+              ...orc, 
+              numero: gerarNumeroOrcamento(), 
+              data: new Date().toISOString().split('T')[0], 
+              status: 'rascunho', 
+              itens: orc.itens.map(i => ({ ...i, id: Date.now() + Math.random() })) 
+            }); 
+            setEditandoId(null); 
+            setActiveTab('orcamento'); 
+          };
           const excluirOrcamento = async (id) => { if (confirm('Excluir permanentemente?')) { await supabase.from('orcamentos').delete().eq('id', id); await carregarHistorico(); } };
 
           const mudarStatus = async (id, novoStatus) => {
@@ -1128,11 +1192,15 @@
             
             const orc = orcamentoAprovando;
             const hoje = new Date().toISOString().split('T')[0];
+            const dataDespesas = dadosPagamento.dataDespesas || hoje;
+            const desconto = parseFloat(dadosPagamento.desconto) || 0;
+            const taxaCartao = parseFloat(dadosPagamento.taxaCartao) || 0;
             
             // Busca categoria de receita e despesa
             const { data: catReceita } = await supabase.from('categorias_financeiras').select('id').eq('tipo', 'receita').eq('nome', 'Vendas').single();
             const { data: catDespesa } = await supabase.from('categorias_financeiras').select('id').eq('tipo', 'despesa').eq('nome', 'Materiais').single();
             const { data: catMaoObra } = await supabase.from('categorias_financeiras').select('id').eq('tipo', 'despesa').eq('nome', 'Mão de Obra').single();
+            const { data: catTaxas } = await supabase.from('categorias_financeiras').select('id').eq('tipo', 'despesa').eq('nome', 'Taxas').single();
             
             const descricaoPedido = `Pedido ${orc.numero} - ${orc.cliente?.nome || 'Cliente'}`;
             
@@ -1145,7 +1213,7 @@
                 categoria_id: catDespesa?.id || null,
                 descricao: `Materiais - ${descricaoPedido}`,
                 valor: custoMateriais,
-                data_transacao: hoje,
+                data_transacao: dataDespesas,
                 status: 'pago',
                 forma_pagamento: 'Fornecedor',
                 orcamento_id: orc.id,
@@ -1161,7 +1229,7 @@
                 categoria_id: catMaoObra?.id || null,
                 descricao: `Mão de Obra - ${descricaoPedido}`,
                 valor: orc.custo_mao_obra,
-                data_transacao: hoje,
+                data_transacao: dataDespesas,
                 status: 'pago',
                 forma_pagamento: 'Mão de Obra',
                 orcamento_id: orc.id,
@@ -1177,7 +1245,7 @@
                 categoria_id: catMaoObra?.id || null,
                 descricao: `Instalação - ${descricaoPedido}`,
                 valor: orc.custo_instalacao,
-                data_transacao: hoje,
+                data_transacao: dataDespesas,
                 status: 'pago',
                 forma_pagamento: 'Instalação',
                 orcamento_id: orc.id,
@@ -1186,7 +1254,24 @@
             }
             
             // 4. Processa RECEITA baseado na forma de pagamento
-            const valorTotal = orc.totais?.total || 0;
+            let valorTotal = (orc.totais?.total || 0) - desconto;
+            
+            // Se tem taxa de cartão, lança como despesa
+            if (taxaCartao > 0 && dadosPagamento.tipo === 'cartao') {
+              const valorTaxa = valorTotal * (taxaCartao / 100);
+              await supabase.from('transacoes').insert([{
+                user_id: user.id,
+                tipo: 'despesa',
+                categoria_id: catTaxas?.id || null,
+                descricao: `Taxa Cartão ${taxaCartao}% - ${descricaoPedido}`,
+                valor: valorTaxa,
+                data_transacao: dataDespesas,
+                status: 'pago',
+                forma_pagamento: 'Taxa Cartão',
+                orcamento_id: orc.id,
+                observacoes: `Taxa de ${taxaCartao}% sobre ${formatCurrency(valorTotal)}`
+              }]);
+            }
             
             if (dadosPagamento.tipo === 'pix') {
               // PIX: entrada imediata como receita
@@ -1318,8 +1403,9 @@
                ? (itemMaterialCost / totalMaterialCost) * totalServiceCost 
                : 0;
 
-             // Markup APENAS no material do item
-             const itemVenda = itemMaterialCost * (1 + orcamento.markup / 100);
+             // Markup: usa markupItem se definido, senão usa markup geral
+             const markupUsado = item.markupItem !== null && item.markupItem !== undefined ? item.markupItem : orcamento.markup;
+             const itemVenda = itemMaterialCost * (1 + markupUsado / 100);
              
              // Total = material com markup + serviço sem markup - desconto
              return (itemVenda + serviceShare) * (1 - orcamento.desconto / 100);
@@ -1622,6 +1708,7 @@
                                   <tbody>
                                     {itens.map(item => {
                                       const finalPrice = calcularPrecoFinalItem(item);
+                                      const markupItem = item.markupItem || orcamento.markup;
                                       return (
                                         <tr key={item.id} className="border-t hover:bg-gray-50">
                                           <td className="p-2">
@@ -1629,12 +1716,19 @@
                                             {item.medidaLargura && item.medidaAltura && (
                                               <p className="text-xs text-blue-600">{item.medidaLargura}m × {item.medidaAltura}m</p>
                                             )}
+                                            {item.markupItem && item.markupItem !== orcamento.markup && (
+                                              <p className="text-xs text-amber-600">Markup: {item.markupItem}%</p>
+                                            )}
                                           </td>
                                           <td className="text-right p-2 font-semibold text-amber-600">{formatCurrency(finalPrice)}</td>
-                                          <td className="p-2 w-20">
+                                          <td className="p-2 w-24">
                                             <div className="flex gap-1 justify-end">
-                                              <button onClick={() => { setItemEditando(item); setShowEditarItem(true); }} className="text-blue-500 hover:text-blue-700 p-1">✏️</button>
-                                              <button onClick={() => removerItem(item.id)} className="text-red-400 hover:text-red-600 p-1">✕</button>
+                                              <button onClick={() => {
+                                                const novoItem = {...item, id: Date.now() + Math.random()};
+                                                setOrcamento({...orcamento, itens: [...orcamento.itens, novoItem]});
+                                              }} className="text-green-500 hover:text-green-700 p-1" title="Duplicar">📋</button>
+                                              <button onClick={() => { setItemEditando(item); setShowEditarItem(true); }} className="text-blue-500 hover:text-blue-700 p-1" title="Editar">✏️</button>
+                                              <button onClick={() => removerItem(item.id)} className="text-red-400 hover:text-red-600 p-1" title="Remover">✕</button>
                                             </div>
                                           </td>
                                         </tr>
@@ -1871,13 +1965,19 @@
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                         <p className="text-xs text-green-600 uppercase">Receitas (Período)</p>
                         <p className="text-xl font-bold text-green-700">{formatCurrency(
-                          transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0)
+                          transacoes.filter(t => {
+                            const dataT = normalizarData(t.data_transacao);
+                            return t.tipo === 'receita' && dataT >= filtroFinanceiroData.inicio && dataT <= filtroFinanceiroData.fim;
+                          }).reduce((acc, t) => acc + t.valor, 0)
                         )}</p>
                       </div>
                       <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                         <p className="text-xs text-red-600 uppercase">Despesas (Período)</p>
                         <p className="text-xl font-bold text-red-700">{formatCurrency(
-                          transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0)
+                          transacoes.filter(t => {
+                            const dataT = normalizarData(t.data_transacao);
+                            return t.tipo === 'despesa' && dataT >= filtroFinanceiroData.inicio && dataT <= filtroFinanceiroData.fim;
+                          }).reduce((acc, t) => acc + t.valor, 0)
                         )}</p>
                       </div>
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -1892,16 +1992,29 @@
                     
                     {/* Totais de Custo e Faturamento Líquido */}
                     {(() => {
-                      const receitasPeriodo = transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0);
-                      const despesasPeriodo = transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0);
+                      const receitasPeriodo = transacoes.filter(t => {
+                        const dataT = normalizarData(t.data_transacao);
+                        return t.tipo === 'receita' && dataT >= filtroFinanceiroData.inicio && dataT <= filtroFinanceiroData.fim;
+                      }).reduce((acc, t) => acc + t.valor, 0);
+                      
+                      const despesasPeriodo = transacoes.filter(t => {
+                        const dataT = normalizarData(t.data_transacao);
+                        return t.tipo === 'despesa' && dataT >= filtroFinanceiroData.inicio && dataT <= filtroFinanceiroData.fim;
+                      }).reduce((acc, t) => acc + t.valor, 0);
+                      
+                      const aReceberPeriodo = contasReceber.filter(c => c.status === 'pendente').reduce((acc, c) => acc + c.valor, 0);
                       const lucroLiquido = receitasPeriodo - despesasPeriodo;
                       return (
                         <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-lg shadow p-4 text-white">
                           <h3 className="font-semibold text-amber-400 mb-3">📊 Resultado do Período</h3>
-                          <div className="grid grid-cols-3 gap-4 text-center">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div>
                               <p className="text-xs text-gray-400 uppercase">Total Faturado</p>
                               <p className="text-xl font-bold text-green-400">{formatCurrency(receitasPeriodo)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400 uppercase">A Receber</p>
+                              <p className="text-xl font-bold text-blue-400">{formatCurrency(aReceberPeriodo)}</p>
                             </div>
                             <div>
                               <p className="text-xs text-gray-400 uppercase">Total Custos</p>
@@ -1911,6 +2024,10 @@
                               <p className="text-xs text-gray-400 uppercase">Lucro Líquido</p>
                               <p className={`text-xl font-bold ${lucroLiquido >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(lucroLiquido)}</p>
                             </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-slate-600 text-center">
+                            <p className="text-xs text-gray-400 uppercase">Projeção Total (Faturado + A Receber)</p>
+                            <p className="text-2xl font-bold text-amber-400">{formatCurrency(receitasPeriodo + aReceberPeriodo)}</p>
                           </div>
                         </div>
                       );
@@ -1989,21 +2106,31 @@
                     </div>
                     
                     {/* Receitas e Despesas do Período */}
+                    {(() => {
+                      const receitasFiltradas = transacoes.filter(t => {
+                        const dataT = normalizarData(t.data_transacao);
+                        return t.tipo === 'receita' && dataT >= filtroFinanceiroData.inicio && dataT <= filtroFinanceiroData.fim;
+                      });
+                      const despesasFiltradas = transacoes.filter(t => {
+                        const dataT = normalizarData(t.data_transacao);
+                        return t.tipo === 'despesa' && dataT >= filtroFinanceiroData.inicio && dataT <= filtroFinanceiroData.fim;
+                      });
+                      return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {/* Receitas do Período */}
                       <div className="bg-white rounded-lg shadow overflow-hidden">
                         <div className="p-4 bg-emerald-50 border-b border-emerald-100 flex justify-between items-center">
                           <h3 className="font-semibold text-emerald-800">✅ Receitas do Período</h3>
                           <span className="text-sm text-emerald-600">
-                            {transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).length} lançamento(s)
+                            {receitasFiltradas.length} lançamento(s)
                           </span>
                         </div>
                         <div className="max-h-[250px] overflow-y-auto">
-                          {transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).length === 0 ? (
+                          {receitasFiltradas.length === 0 ? (
                             <p className="p-4 text-gray-400 text-center">Nenhuma receita no período</p>
                           ) : (
-                            transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).map(t => (
-                              <div key={t.id} className="p-3 border-b flex items-center gap-3 bg-emerald-50/30">
+                            receitasFiltradas.map(t => (
+                              <div key={t.id} className="p-3 border-b flex items-center gap-3 bg-emerald-50/30 hover:bg-emerald-100/50">
                                 <div className="flex-1">
                                   <p className="font-medium text-sm">{t.descricao}</p>
                                   <p className="text-xs text-gray-500">{t.categorias_financeiras?.nome || 'Sem categoria'}</p>
@@ -2011,8 +2138,9 @@
                                     {new Date(t.data_transacao).toLocaleDateString('pt-BR')}
                                   </p>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right flex items-center gap-2">
                                   <p className="font-bold text-emerald-600">{formatCurrency(t.valor)}</p>
+                                  <button onClick={() => { setTransacaoEditando(t); setShowTransacaoModal(true); }} className="text-blue-500 hover:text-blue-700 p-1" title="Editar">✏️</button>
                                 </div>
                               </div>
                             ))
@@ -2022,7 +2150,7 @@
                           <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-emerald-700">Total Receitas:</span>
                             <span className="font-bold text-emerald-700">
-                              {formatCurrency(transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0))}
+                              {formatCurrency(receitasFiltradas.reduce((acc, t) => acc + t.valor, 0))}
                             </span>
                           </div>
                         </div>
@@ -2033,15 +2161,15 @@
                         <div className="p-4 bg-orange-50 border-b border-orange-100 flex justify-between items-center">
                           <h3 className="font-semibold text-orange-800">✅ Despesas do Período</h3>
                           <span className="text-sm text-orange-600">
-                            {transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).length} lançamento(s)
+                            {despesasFiltradas.length} lançamento(s)
                           </span>
                         </div>
                         <div className="max-h-[250px] overflow-y-auto">
-                          {transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).length === 0 ? (
+                          {despesasFiltradas.length === 0 ? (
                             <p className="p-4 text-gray-400 text-center">Nenhuma despesa no período</p>
                           ) : (
-                            transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).map(t => (
-                              <div key={t.id} className="p-3 border-b flex items-center gap-3 bg-orange-50/30">
+                            despesasFiltradas.map(t => (
+                              <div key={t.id} className="p-3 border-b flex items-center gap-3 bg-orange-50/30 hover:bg-orange-100/50">
                                 <div className="flex-1">
                                   <p className="font-medium text-sm">{t.descricao}</p>
                                   <p className="text-xs text-gray-500">{t.categorias_financeiras?.nome || 'Sem categoria'}</p>
@@ -2049,8 +2177,9 @@
                                     {new Date(t.data_transacao).toLocaleDateString('pt-BR')}
                                   </p>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right flex items-center gap-2">
                                   <p className="font-bold text-orange-600">{formatCurrency(t.valor)}</p>
+                                  <button onClick={() => { setTransacaoEditando(t); setShowTransacaoModal(true); }} className="text-blue-500 hover:text-blue-700 p-1" title="Editar">✏️</button>
                                 </div>
                               </div>
                             ))
@@ -2060,12 +2189,14 @@
                           <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-orange-700">Total Despesas:</span>
                             <span className="font-bold text-orange-700">
-                              {formatCurrency(transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0))}
+                              {formatCurrency(despesasFiltradas.reduce((acc, t) => acc + t.valor, 0))}
                             </span>
                           </div>
                         </div>
                       </div>
                     </div>
+                      );
+                    })()}
                     
                     {/* Extrato de Transações */}
                     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -3231,6 +3362,7 @@
                         largura: formData.get('largura'),
                         altura: formData.get('altura'),
                         custoTotal: formData.get('custoTotal'),
+                        markupItem: formData.get('markupItem'),
                         quantidade: itemEditando.quantidade
                       });
                     }} className="p-4 space-y-4">
@@ -3255,9 +3387,15 @@
                           <input name="altura" type="number" step="0.01" defaultValue={itemEditando.medidaAltura || ''} className="w-full border rounded-lg px-3 py-2 text-center" />
                         </div>
                       </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-1">Custo Total (R$) *</label>
-                        <input name="custoTotal" type="text" required defaultValue={itemEditando.valorTotal?.toFixed(2).replace('.', ',')} className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center" />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block mb-1">Custo Total (R$) *</label>
+                          <input name="custoTotal" type="text" required defaultValue={itemEditando.valorTotal?.toFixed(2).replace('.', ',')} className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block mb-1">Markup Item (%)</label>
+                          <input name="markupItem" type="number" step="1" defaultValue={itemEditando.markupItem || ''} placeholder={`Padrão: ${orcamento.markup}%`} className="w-full border rounded-lg px-3 py-2 text-center" />
+                        </div>
                       </div>
                       <div className="flex gap-2 pt-2">
                         <button type="button" onClick={() => { setShowEditarItem(false); setItemEditando(null); }} className="flex-1 py-2.5 border rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
@@ -3282,13 +3420,13 @@
                       const tipo = formData.get('tipoPagamento');
                       const dados = {
                         tipo: tipo,
-                        // PIX
+                        desconto: formData.get('descontoAprovacao'),
+                        taxaCartao: formData.get('taxaCartao'),
+                        dataDespesas: formData.get('dataDespesas'),
                         dataRecebimento: formData.get('dataRecebimento'),
-                        // Cartão/Boleto
                         parcelas: formData.get('parcelas'),
                         dataPrimeiraParcela: formData.get('dataPrimeiraParcela'),
                         dataVencimento: formData.get('dataVencimento'),
-                        // Entrada + Parcelas
                         valorEntrada: formData.get('valorEntrada'),
                         dataEntrada: formData.get('dataEntrada'),
                         formaEntrada: formData.get('formaEntrada'),
@@ -3312,6 +3450,19 @@
                           <div><span className="text-gray-700 font-medium">VALOR VENDA:</span></div>
                           <div className="text-right font-bold text-green-600 text-lg">{formatCurrency(orcamentoAprovando.totais?.total || 0)}</div>
                         </div>
+                      </div>
+                      
+                      {/* Data de Lançamento das Despesas */}
+                      <div className="mb-4 p-3 bg-red-50 rounded-lg">
+                        <label className="text-sm font-medium text-red-700 block mb-2">📅 Data de Lançamento das Despesas</label>
+                        <input name="dataDespesas" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm" />
+                        <p className="text-xs text-red-500 mt-1">Quando o custo de materiais/mão de obra será lançado</p>
+                      </div>
+                      
+                      {/* Desconto na Aprovação */}
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Desconto Adicional (R$)</label>
+                        <input name="descontoAprovacao" type="number" step="0.01" defaultValue="0" className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0,00" />
                       </div>
                       
                       {/* Tipo de Pagamento */}
@@ -3352,6 +3503,10 @@
                           <div>
                             <label className="text-xs text-gray-600 block mb-1">1ª Parcela *</label>
                             <input name="dataPrimeiraParcela" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="text-xs text-gray-600 block mb-1">Taxa do Cartão (%)</label>
+                            <input name="taxaCartao" type="number" step="0.01" defaultValue="0" className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Ex: 2.5" />
                           </div>
                         </div>
                       </div>

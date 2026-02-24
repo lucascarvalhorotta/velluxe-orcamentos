@@ -328,6 +328,17 @@
           const [showFornecedorModal, setShowFornecedorModal] = useState(false);
           const [showProdutoModal, setShowProdutoModal] = useState(false);
           const [showImportarPDF, setShowImportarPDF] = useState(false);
+          const [showItemRapido, setShowItemRapido] = useState(false);
+          const [showEditarItem, setShowEditarItem] = useState(false);
+          const [itemEditando, setItemEditando] = useState(null);
+          const [ambienteAtual, setAmbienteAtual] = useState('');
+          const [filtroFinanceiroData, setFiltroFinanceiroData] = useState(() => {
+            const hoje = new Date();
+            return {
+              inicio: new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0],
+              fim: new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0]
+            };
+          });
           const [fornecedorEditando, setFornecedorEditando] = useState(null);
           const [produtoEditando, setProdutoEditando] = useState(null);
           const [buscaProduto, setBuscaProduto] = useState('');
@@ -343,6 +354,8 @@
           const [showTransacaoModal, setShowTransacaoModal] = useState(false);
           const [showContaPagarModal, setShowContaPagarModal] = useState(false);
           const [showContaReceberModal, setShowContaReceberModal] = useState(false);
+          const [showAprovacaoModal, setShowAprovacaoModal] = useState(false);
+          const [orcamentoAprovando, setOrcamentoAprovando] = useState(null);
           const [transacaoEditando, setTransacaoEditando] = useState(null);
           const [contaPagarEditando, setContaPagarEditando] = useState(null);
           const [contaReceberEditando, setContaReceberEditando] = useState(null);
@@ -948,7 +961,8 @@
               id: Date.now(), 
               codigo: itemSelecionado.codigo, 
               nome: itemSelecionado.nome,
-              descricao: (descricaoItem || itemSelecionado.nome) + descMedidas, 
+              descricao: (descricaoItem || itemSelecionado.nome) + descMedidas,
+              ambiente: ambienteAtual || 'Sem Ambiente',
               categoria: itemSelecionado.categoria,
               quantidade: qtdFinal, 
               unidade: 'm2',
@@ -961,6 +975,74 @@
             setOrcamento({ ...orcamento, itens: [...orcamento.itens, novoItem] });
             setShowAddItem(false); setItemSelecionado(null); setQuantidade(1); setCustoUnitario(''); setDescricaoItem(''); setMedidaLargura(''); setMedidaAltura('');
           };
+          
+          // Adiciona item rápido (sem buscar no catálogo, SEM campo ambiente)
+          const adicionarItemRapido = (dados) => {
+            const larg = parseFloat(dados.largura) || 0;
+            const alt = parseFloat(dados.altura) || 0;
+            const custoTotal = parseFloat(dados.custoTotal.toString().replace(',', '.')) || 0;
+            const area = larg && alt ? larg * alt : 1;
+            const custoUnit = area > 0 ? custoTotal / area : custoTotal;
+            
+            const novoItem = {
+              id: Date.now(),
+              codigo: 'ITEM-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+              nome: dados.descricao,
+              descricao: dados.descricao,
+              ambiente: ambienteAtual || 'Sem Ambiente',
+              categoria: 'Item Avulso',
+              quantidade: area,
+              unidade: 'm2',
+              medidaLargura: larg || null,
+              medidaAltura: alt || null,
+              precoCusto: custoUnit,
+              valorUnitario: custoUnit,
+              valorTotal: custoTotal
+            };
+            setOrcamento({ ...orcamento, itens: [...orcamento.itens, novoItem] });
+            setShowItemRapido(false);
+          };
+          
+          // Edita item existente
+          const salvarEdicaoItem = (dadosEditados) => {
+            const larg = parseFloat(dadosEditados.largura) || 0;
+            const alt = parseFloat(dadosEditados.altura) || 0;
+            const custoTotal = parseFloat(dadosEditados.custoTotal.toString().replace(',', '.')) || 0;
+            const area = larg && alt ? larg * alt : dadosEditados.quantidade || 1;
+            const custoUnit = area > 0 ? custoTotal / area : custoTotal;
+            
+            const itensAtualizados = orcamento.itens.map(item => {
+              if (item.id === itemEditando.id) {
+                return {
+                  ...item,
+                  nome: dadosEditados.descricao,
+                  descricao: dadosEditados.descricao,
+                  ambiente: dadosEditados.ambiente || 'Sem Ambiente',
+                  quantidade: area,
+                  medidaLargura: larg || null,
+                  medidaAltura: alt || null,
+                  precoCusto: custoUnit,
+                  valorUnitario: custoUnit,
+                  valorTotal: custoTotal
+                };
+              }
+              return item;
+            });
+            setOrcamento({ ...orcamento, itens: itensAtualizados });
+            setShowEditarItem(false);
+            setItemEditando(null);
+          };
+          
+          // Agrupa itens por ambiente
+          const itensAgrupados = React.useMemo(() => {
+            const grupos = {};
+            orcamento.itens.forEach(item => {
+              const amb = item.ambiente || 'Sem Ambiente';
+              if (!grupos[amb]) grupos[amb] = [];
+              grupos[amb].push(item);
+            });
+            return grupos;
+          }, [orcamento.itens]);
 
           const removerItem = (itemId) => setOrcamento({ ...orcamento, itens: orcamento.itens.filter(i => i.id !== itemId) });
           const atualizarCliente = (campo, valor) => setOrcamento({ ...orcamento, cliente: { ...orcamento.cliente, [campo]: valor } });
@@ -1025,9 +1107,204 @@
           const excluirOrcamento = async (id) => { if (confirm('Excluir permanentemente?')) { await supabase.from('orcamentos').delete().eq('id', id); await carregarHistorico(); } };
 
           const mudarStatus = async (id, novoStatus) => {
+            // Se está mudando para "aprovado", abre modal de aprovação
+            if (novoStatus === 'aprovado') {
+              const orc = historico.find(h => h.id === id);
+              if (orc) {
+                setOrcamentoAprovando(orc);
+                setShowAprovacaoModal(true);
+              }
+              return;
+            }
+            
             const { error } = await supabase.from('orcamentos').update({ status: novoStatus }).eq('id', id);
             if (error) { alert('Erro ao atualizar status'); }
             else { await carregarHistorico(); }
+          };
+          
+          // Processa aprovação do orçamento com dados financeiros
+          const processarAprovacao = async (dadosPagamento) => {
+            if (!orcamentoAprovando) return;
+            
+            const orc = orcamentoAprovando;
+            const hoje = new Date().toISOString().split('T')[0];
+            
+            // Busca categoria de receita e despesa
+            const { data: catReceita } = await supabase.from('categorias_financeiras').select('id').eq('tipo', 'receita').eq('nome', 'Vendas').single();
+            const { data: catDespesa } = await supabase.from('categorias_financeiras').select('id').eq('tipo', 'despesa').eq('nome', 'Materiais').single();
+            const { data: catMaoObra } = await supabase.from('categorias_financeiras').select('id').eq('tipo', 'despesa').eq('nome', 'Mão de Obra').single();
+            
+            const descricaoPedido = `Pedido ${orc.numero} - ${orc.cliente?.nome || 'Cliente'}`;
+            
+            // 1. Insere DESPESA de materiais (custo dos itens)
+            const custoMateriais = orc.itens?.reduce((acc, item) => acc + (item.precoCusto * item.quantidade), 0) || 0;
+            if (custoMateriais > 0) {
+              await supabase.from('transacoes').insert([{
+                user_id: user.id,
+                tipo: 'despesa',
+                categoria_id: catDespesa?.id || null,
+                descricao: `Materiais - ${descricaoPedido}`,
+                valor: custoMateriais,
+                data_transacao: hoje,
+                status: 'pago',
+                forma_pagamento: 'Fornecedor',
+                orcamento_id: orc.id,
+                observacoes: `Custo de materiais do orçamento ${orc.numero}`
+              }]);
+            }
+            
+            // 2. Insere DESPESA de mão de obra (se houver)
+            if (orc.custo_mao_obra > 0) {
+              await supabase.from('transacoes').insert([{
+                user_id: user.id,
+                tipo: 'despesa',
+                categoria_id: catMaoObra?.id || null,
+                descricao: `Mão de Obra - ${descricaoPedido}`,
+                valor: orc.custo_mao_obra,
+                data_transacao: hoje,
+                status: 'pago',
+                forma_pagamento: 'Mão de Obra',
+                orcamento_id: orc.id,
+                observacoes: `Custo de mão de obra do orçamento ${orc.numero}`
+              }]);
+            }
+            
+            // 3. Insere DESPESA de instalação (se houver)
+            if (orc.custo_instalacao > 0) {
+              await supabase.from('transacoes').insert([{
+                user_id: user.id,
+                tipo: 'despesa',
+                categoria_id: catMaoObra?.id || null,
+                descricao: `Instalação - ${descricaoPedido}`,
+                valor: orc.custo_instalacao,
+                data_transacao: hoje,
+                status: 'pago',
+                forma_pagamento: 'Instalação',
+                orcamento_id: orc.id,
+                observacoes: `Custo de instalação do orçamento ${orc.numero}`
+              }]);
+            }
+            
+            // 4. Processa RECEITA baseado na forma de pagamento
+            const valorTotal = orc.totais?.total || 0;
+            
+            if (dadosPagamento.tipo === 'pix') {
+              // PIX: entrada imediata como receita
+              await supabase.from('transacoes').insert([{
+                user_id: user.id,
+                tipo: 'receita',
+                categoria_id: catReceita?.id || null,
+                descricao: `Venda PIX - ${descricaoPedido}`,
+                valor: valorTotal,
+                data_transacao: dadosPagamento.dataRecebimento || hoje,
+                status: 'pago',
+                forma_pagamento: 'PIX',
+                orcamento_id: orc.id,
+                observacoes: `Pagamento via PIX - ${orc.numero}`
+              }]);
+            } else if (dadosPagamento.tipo === 'cartao') {
+              // Cartão: cria contas a receber parceladas
+              const parcelas = parseInt(dadosPagamento.parcelas) || 1;
+              const valorParcela = valorTotal / parcelas;
+              const dataBase = new Date(dadosPagamento.dataPrimeiraParcela || hoje);
+              
+              for (let i = 0; i < parcelas; i++) {
+                const dataVenc = new Date(dataBase);
+                dataVenc.setMonth(dataVenc.getMonth() + i);
+                
+                await supabase.from('contas_receber').insert([{
+                  user_id: user.id,
+                  categoria_id: catReceita?.id || null,
+                  descricao: `Cartão ${i + 1}/${parcelas} - ${descricaoPedido}`,
+                  valor: valorParcela,
+                  data_vencimento: dataVenc.toISOString().split('T')[0],
+                  status: 'pendente',
+                  forma_pagamento: `Cartão ${parcelas}x`,
+                  orcamento_id: orc.id,
+                  parcela_atual: i + 1,
+                  total_parcelas: parcelas
+                }]);
+              }
+            } else if (dadosPagamento.tipo === 'boleto') {
+              // Boleto: cria contas a receber
+              const parcelas = parseInt(dadosPagamento.parcelas) || 1;
+              const valorParcela = valorTotal / parcelas;
+              const dataBase = new Date(dadosPagamento.dataVencimento || hoje);
+              
+              for (let i = 0; i < parcelas; i++) {
+                const dataVenc = new Date(dataBase);
+                dataVenc.setMonth(dataVenc.getMonth() + i);
+                
+                await supabase.from('contas_receber').insert([{
+                  user_id: user.id,
+                  categoria_id: catReceita?.id || null,
+                  descricao: `Boleto ${i + 1}/${parcelas} - ${descricaoPedido}`,
+                  valor: valorParcela,
+                  data_vencimento: dataVenc.toISOString().split('T')[0],
+                  status: 'pendente',
+                  forma_pagamento: `Boleto ${parcelas}x`,
+                  orcamento_id: orc.id,
+                  parcela_atual: i + 1,
+                  total_parcelas: parcelas
+                }]);
+              }
+            } else if (dadosPagamento.tipo === 'entrada_parcelas') {
+              // Entrada + Parcelas
+              const valorEntrada = parseFloat(dadosPagamento.valorEntrada) || 0;
+              const valorRestante = valorTotal - valorEntrada;
+              const parcelas = parseInt(dadosPagamento.parcelas) || 1;
+              
+              // Entrada como receita imediata
+              if (valorEntrada > 0) {
+                await supabase.from('transacoes').insert([{
+                  user_id: user.id,
+                  tipo: 'receita',
+                  categoria_id: catReceita?.id || null,
+                  descricao: `Entrada - ${descricaoPedido}`,
+                  valor: valorEntrada,
+                  data_transacao: dadosPagamento.dataEntrada || hoje,
+                  status: 'pago',
+                  forma_pagamento: dadosPagamento.formaEntrada || 'PIX',
+                  orcamento_id: orc.id,
+                  observacoes: `Entrada do pedido ${orc.numero}`
+                }]);
+              }
+              
+              // Parcelas como contas a receber
+              if (valorRestante > 0 && parcelas > 0) {
+                const valorParcela = valorRestante / parcelas;
+                const dataBase = new Date(dadosPagamento.dataPrimeiraParcela || hoje);
+                
+                for (let i = 0; i < parcelas; i++) {
+                  const dataVenc = new Date(dataBase);
+                  dataVenc.setMonth(dataVenc.getMonth() + i);
+                  
+                  await supabase.from('contas_receber').insert([{
+                    user_id: user.id,
+                    categoria_id: catReceita?.id || null,
+                    descricao: `Parcela ${i + 1}/${parcelas} - ${descricaoPedido}`,
+                    valor: valorParcela,
+                    data_vencimento: dataVenc.toISOString().split('T')[0],
+                    status: 'pendente',
+                    forma_pagamento: dadosPagamento.formaParcelas || 'Cartão',
+                    orcamento_id: orc.id,
+                    parcela_atual: i + 1,
+                    total_parcelas: parcelas
+                  }]);
+                }
+              }
+            }
+            
+            // 5. Atualiza status do orçamento para aprovado
+            await supabase.from('orcamentos').update({ status: 'aprovado' }).eq('id', orc.id);
+            
+            // 6. Recarrega dados
+            await carregarHistorico();
+            await carregarDadosFinanceiros();
+            
+            setShowAprovacaoModal(false);
+            setOrcamentoAprovando(null);
+            alert('✅ Orçamento aprovado e lançamentos financeiros criados!');
           };
 
           // === FUNÇÃO HELPER PARA CÁLCULO DE ITEM NA TELA E PDF ===
@@ -1301,34 +1578,73 @@
                       <div className="bg-white rounded-lg shadow p-4">
                         <div className="flex justify-between items-center mb-3">
                           <h2 className="font-semibold text-gray-800">📦 Itens</h2>
-                          <button onClick={() => setShowAddItem(true)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Adicionar</button>
+                          <div className="flex gap-2">
+                            <button onClick={() => setShowItemRapido(true)} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium">⚡ Item Rápido</button>
+                            <button onClick={() => setShowAddItem(true)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Catálogo</button>
+                          </div>
                         </div>
+                        
+                        {/* Seletor de Ambiente Atual */}
+                        <div className="mb-4 p-3 bg-slate-100 rounded-lg">
+                          <label className="text-xs font-medium text-slate-600 block mb-1">🏠 Ambiente Atual (para novos itens)</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              value={ambienteAtual} 
+                              onChange={(e) => setAmbienteAtual(e.target.value)}
+                              placeholder="Ex: Cozinha, Sala, Suíte..."
+                              className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                              list="ambientes-sugestoes"
+                            />
+                            <datalist id="ambientes-sugestoes">
+                              <option value="Cozinha" />
+                              <option value="Sala" />
+                              <option value="Suíte" />
+                              <option value="Quarto" />
+                              <option value="Escritório" />
+                              <option value="Varanda" />
+                              <option value="Lavabo" />
+                              <option value="Banheiro" />
+                            </datalist>
+                          </div>
+                        </div>
+                        
                         {orcamento.itens.length === 0 ? (
                           <div className="text-center py-8 text-gray-400 border-2 border-dashed rounded-lg">Nenhum item</div>
                         ) : (
-                          <table className="w-full text-sm">
-                            <thead className="bg-gray-50"><tr><th className="text-left p-2">Item</th><th className="text-center p-2">Medidas (L × A)</th><th className="text-right p-2">Total Final</th><th></th></tr></thead>
-                            <tbody>
-                              {orcamento.itens.map(item => {
-                                const finalPrice = calcularPrecoFinalItem(item);
-                                return (
-                                <tr key={item.id} className="border-t">
-                                  <td className="p-2">
-                                    <p className="font-medium">{item.nome || item.descricao?.split(' (')[0]}</p>
-                                    <p className="text-xs text-gray-500">{item.categoria}</p>
-                                  </td>
-                                  <td className="text-center p-2">
-                                    {item.medidaLargura && item.medidaAltura ? (
-                                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">{item.medidaLargura}m × {item.medidaAltura}m</span>
-                                    ) : '-'}
-                                  </td>
-                                  <td className="text-right p-2 font-semibold text-amber-600">{formatCurrency(finalPrice)}</td>
-                                  <td className="p-2"><button onClick={() => removerItem(item.id)} className="text-red-400 hover:text-red-600">✕</button></td>
-                                </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
+                          <div className="space-y-4">
+                            {Object.entries(itensAgrupados).map(([ambiente, itens]) => (
+                              <div key={ambiente} className="border rounded-lg overflow-hidden">
+                                <div className="bg-slate-700 text-white px-3 py-2 text-sm font-medium">
+                                  🏠 {ambiente}
+                                </div>
+                                <table className="w-full text-sm">
+                                  <tbody>
+                                    {itens.map(item => {
+                                      const finalPrice = calcularPrecoFinalItem(item);
+                                      return (
+                                        <tr key={item.id} className="border-t hover:bg-gray-50">
+                                          <td className="p-2">
+                                            <p className="font-medium">{item.nome || item.descricao?.split(' (')[0]}</p>
+                                            {item.medidaLargura && item.medidaAltura && (
+                                              <p className="text-xs text-blue-600">{item.medidaLargura}m × {item.medidaAltura}m</p>
+                                            )}
+                                          </td>
+                                          <td className="text-right p-2 font-semibold text-amber-600">{formatCurrency(finalPrice)}</td>
+                                          <td className="p-2 w-20">
+                                            <div className="flex gap-1 justify-end">
+                                              <button onClick={() => { setItemEditando(item); setShowEditarItem(true); }} className="text-blue-500 hover:text-blue-700 p-1">✏️</button>
+                                              <button onClick={() => removerItem(item.id)} className="text-red-400 hover:text-red-600 p-1">✕</button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
                       {/* Serviços */}
@@ -1533,24 +1849,36 @@
                 {/* TAB FINANCEIRO */}
                 {activeTab === 'financeiro' && (
                   <div className="space-y-4">
-                    {/* Header */}
+                    {/* Header com Filtro de Data */}
                     <div className="bg-white rounded-lg shadow p-4">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <button onClick={() => { setTransacaoEditando(null); setShowTransacaoModal(true); }} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-amber-600 text-sm">+ Nova Transação</button>
-                        <button onClick={() => { setContaPagarEditando(null); setShowContaPagarModal(true); }} className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 text-sm">+ Conta a Pagar</button>
-                        <button onClick={() => { setContaReceberEditando(null); setShowContaReceberModal(true); }} className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 text-sm">+ Conta a Receber</button>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={() => { setTransacaoEditando(null); setShowTransacaoModal(true); }} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-amber-600 text-sm">+ Nova Transação</button>
+                          <button onClick={() => { setContaPagarEditando(null); setShowContaPagarModal(true); }} className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 text-sm">+ Conta a Pagar</button>
+                          <button onClick={() => { setContaReceberEditando(null); setShowContaReceberModal(true); }} className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 text-sm">+ Conta a Receber</button>
+                        </div>
+                        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
+                          <span className="text-xs text-gray-500">📅 Período:</span>
+                          <input type="date" value={filtroFinanceiroData.inicio} onChange={(e) => setFiltroFinanceiroData(prev => ({...prev, inicio: e.target.value}))} className="border rounded px-2 py-1 text-sm" />
+                          <span className="text-gray-400">até</span>
+                          <input type="date" value={filtroFinanceiroData.fim} onChange={(e) => setFiltroFinanceiroData(prev => ({...prev, fim: e.target.value}))} className="border rounded px-2 py-1 text-sm" />
+                        </div>
                       </div>
                     </div>
                     
                     {/* Resumo Rápido */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p className="text-xs text-green-600 uppercase">Receitas (Mês)</p>
-                        <p className="text-xl font-bold text-green-700">{formatCurrency(metricas.totalReceitasMes)}</p>
+                        <p className="text-xs text-green-600 uppercase">Receitas (Período)</p>
+                        <p className="text-xl font-bold text-green-700">{formatCurrency(
+                          transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0)
+                        )}</p>
                       </div>
                       <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                        <p className="text-xs text-red-600 uppercase">Despesas (Mês)</p>
-                        <p className="text-xl font-bold text-red-700">{formatCurrency(metricas.totalDespesasMes)}</p>
+                        <p className="text-xs text-red-600 uppercase">Despesas (Período)</p>
+                        <p className="text-xl font-bold text-red-700">{formatCurrency(
+                          transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0)
+                        )}</p>
                       </div>
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <p className="text-xs text-blue-600 uppercase">A Receber</p>
@@ -1561,6 +1889,32 @@
                         <p className="text-xl font-bold text-amber-700">{formatCurrency(metricas.totalAPagar)}</p>
                       </div>
                     </div>
+                    
+                    {/* Totais de Custo e Faturamento Líquido */}
+                    {(() => {
+                      const receitasPeriodo = transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0);
+                      const despesasPeriodo = transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0);
+                      const lucroLiquido = receitasPeriodo - despesasPeriodo;
+                      return (
+                        <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-lg shadow p-4 text-white">
+                          <h3 className="font-semibold text-amber-400 mb-3">📊 Resultado do Período</h3>
+                          <div className="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                              <p className="text-xs text-gray-400 uppercase">Total Faturado</p>
+                              <p className="text-xl font-bold text-green-400">{formatCurrency(receitasPeriodo)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400 uppercase">Total Custos</p>
+                              <p className="text-xl font-bold text-red-400">{formatCurrency(despesasPeriodo)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400 uppercase">Lucro Líquido</p>
+                              <p className={`text-xl font-bold ${lucroLiquido >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(lucroLiquido)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {/* Contas a Receber */}
@@ -1634,6 +1988,85 @@
                       </div>
                     </div>
                     
+                    {/* Receitas e Despesas do Período */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Receitas do Período */}
+                      <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="p-4 bg-emerald-50 border-b border-emerald-100 flex justify-between items-center">
+                          <h3 className="font-semibold text-emerald-800">✅ Receitas do Período</h3>
+                          <span className="text-sm text-emerald-600">
+                            {transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).length} lançamento(s)
+                          </span>
+                        </div>
+                        <div className="max-h-[250px] overflow-y-auto">
+                          {transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).length === 0 ? (
+                            <p className="p-4 text-gray-400 text-center">Nenhuma receita no período</p>
+                          ) : (
+                            transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).map(t => (
+                              <div key={t.id} className="p-3 border-b flex items-center gap-3 bg-emerald-50/30">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{t.descricao}</p>
+                                  <p className="text-xs text-gray-500">{t.categorias_financeiras?.nome || 'Sem categoria'}</p>
+                                  <p className="text-xs text-emerald-600">
+                                    {new Date(t.data_transacao).toLocaleDateString('pt-BR')}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-emerald-600">{formatCurrency(t.valor)}</p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <div className="p-3 bg-emerald-100 border-t border-emerald-200">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-emerald-700">Total Receitas:</span>
+                            <span className="font-bold text-emerald-700">
+                              {formatCurrency(transacoes.filter(t => t.tipo === 'receita' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0))}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Despesas do Período */}
+                      <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="p-4 bg-orange-50 border-b border-orange-100 flex justify-between items-center">
+                          <h3 className="font-semibold text-orange-800">✅ Despesas do Período</h3>
+                          <span className="text-sm text-orange-600">
+                            {transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).length} lançamento(s)
+                          </span>
+                        </div>
+                        <div className="max-h-[250px] overflow-y-auto">
+                          {transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).length === 0 ? (
+                            <p className="p-4 text-gray-400 text-center">Nenhuma despesa no período</p>
+                          ) : (
+                            transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).map(t => (
+                              <div key={t.id} className="p-3 border-b flex items-center gap-3 bg-orange-50/30">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{t.descricao}</p>
+                                  <p className="text-xs text-gray-500">{t.categorias_financeiras?.nome || 'Sem categoria'}</p>
+                                  <p className="text-xs text-orange-600">
+                                    {new Date(t.data_transacao).toLocaleDateString('pt-BR')}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-orange-600">{formatCurrency(t.valor)}</p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <div className="p-3 bg-orange-100 border-t border-orange-200">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-orange-700">Total Despesas:</span>
+                            <span className="font-bold text-orange-700">
+                              {formatCurrency(transacoes.filter(t => t.tipo === 'despesa' && t.data_transacao >= filtroFinanceiroData.inicio && t.data_transacao <= filtroFinanceiroData.fim).reduce((acc, t) => acc + t.valor, 0))}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
                     {/* Extrato de Transações */}
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                       <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
@@ -1668,7 +2101,10 @@
                                     {t.tipo === 'receita' ? '+' : '-'} {formatCurrency(t.valor)}
                                   </td>
                                   <td className="p-3 text-center">
-                                    <button onClick={() => excluirTransacao(t.id)} className="text-red-500 hover:text-red-700">🗑️</button>
+                                    <div className="flex gap-1 justify-center">
+                                      <button onClick={() => { setTransacaoEditando(t); setShowTransacaoModal(true); }} className="text-blue-500 hover:text-blue-700">✏️</button>
+                                      <button onClick={() => excluirTransacao(t.id)} className="text-red-500 hover:text-red-700">🗑️</button>
+                                    </div>
                                   </td>
                                 </tr>
                               ))}
@@ -2190,32 +2626,31 @@
                           </div>
                           {orcamento.cliente.endereco && <div style={{ marginTop: '10px', fontSize: '12px', borderTop: '1px solid #ddd', paddingTop: '10px' }}><strong>Endereço:</strong> {orcamento.cliente.endereco}, {orcamento.cliente.numero} {orcamento.cliente.bairro && `• ${orcamento.cliente.bairro}`} {orcamento.cliente.cidade && `• ${orcamento.cliente.cidade}/${orcamento.cliente.estado}`}</div>}
                         </div>
-                        {/* Itens */}
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '20px' }}>
-                          <thead><tr style={{ backgroundColor: '#1a2231', color: 'white' }}>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>Descrição</th>
-                            <th style={{ padding: '10px', textAlign: 'center', width: '120px' }}>Medidas (L × A)</th>
-                            <th style={{ padding: '10px', textAlign: 'right', width: '100px' }}>Valor</th>
-                          </tr></thead>
-                          <tbody>
-                            {orcamento.itens.map((item, i) => {
-                                const finalPrice = calcularPrecoFinalItem(item);
-                                const medidas = item.medidaLargura && item.medidaAltura 
-                                  ? `${item.medidaLargura}m × ${item.medidaAltura}m`
-                                  : '-';
-                                return (
-                                    <tr key={item.id} style={{ borderBottom: '1px solid #eee', backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                        {/* Itens agrupados por ambiente */}
+                        <div style={{ marginBottom: '20px' }}>
+                          {Object.entries(itensAgrupados).map(([ambiente, itens]) => (
+                            <div key={ambiente} style={{ marginBottom: '15px' }}>
+                              <div style={{ backgroundColor: '#1a2231', color: 'white', padding: '8px 12px', fontSize: '12px', fontWeight: '600' }}>
+                                🏠 {ambiente}
+                              </div>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                                <tbody>
+                                  {itens.map((item, i) => {
+                                    const finalPrice = calcularPrecoFinalItem(item);
+                                    return (
+                                      <tr key={item.id} style={{ borderBottom: '1px solid #eee', backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                                         <td style={{ padding: '10px' }}>
-                                          <strong>{item.nome || item.descricao?.split(' (')[0]}</strong>
-                                          <br/><span style={{ color: '#888', fontSize: '10px' }}>{item.categoria}</span>
+                                          <span style={{ fontWeight: '500' }}>{item.nome || item.descricao}</span>
                                         </td>
-                                        <td style={{ padding: '10px', textAlign: 'center', fontSize: '11px', fontWeight: '500' }}>{medidas}</td>
-                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(finalPrice)}</td>
-                                    </tr>
-                                );
-                            })}
-                          </tbody>
-                        </table>
+                                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600', width: '120px' }}>{formatCurrency(finalPrice)}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ))}
+                        </div>
                         {/* Totais */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
                           <div style={{ width: '250px' }}>
@@ -2236,7 +2671,8 @@
                         {/* Footer */}
                         <div style={{ borderTop: '2px solid #D4AF37', paddingTop: '15px', textAlign: 'center', fontSize: '10px', color: '#888' }}>
                           <p style={{ margin: '0 0 5px 0' }}><strong style={{ color: '#1a2231' }}>Velluxe Decor</strong> • Cortinas Sob Medida</p>
-                          <p style={{ margin: 0 }}>📍 Cascavel, PR • 📱 (45) 99811-3954 • 📧 velluxedecor@gmail.com</p>
+                          <p style={{ margin: '0 0 3px 0' }}>📍 Cascavel, PR • 📱 (45) 99811-3954 • 📧 velluxedecor@gmail.com</p>
+                          <p style={{ margin: 0, color: '#D4AF37', fontWeight: '500' }}>📸 @velluxe.decor • 🌐 www.velluxedecor.com.br</p>
                         </div>
                       </div>
                     </div>
@@ -2728,6 +3164,259 @@
                       <div className="flex gap-2 pt-4 border-t">
                         <button type="button" onClick={() => { setShowContaReceberModal(false); setContaReceberEditando(null); }} className="flex-1 py-2.5 border rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
                         <button type="submit" className="flex-1 py-2.5 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600">Salvar</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Item Rápido */}
+              {showItemRapido && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                    <div className="p-4 border-b bg-green-600 text-white">
+                      <h3 className="text-lg font-semibold">⚡ Item Rápido</h3>
+                      <p className="text-green-100 text-sm">Adicione item direto do orçamento do fornecedor</p>
+                    </div>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.target);
+                      adicionarItemRapido({
+                        descricao: formData.get('descricao'),
+                        largura: formData.get('largura'),
+                        altura: formData.get('altura'),
+                        custoTotal: formData.get('custoTotal')
+                      });
+                    }} className="p-4 space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Descrição *</label>
+                        <input name="descricao" type="text" required placeholder="Ex: Rolo Screen 1% Preto" className="w-full border rounded-lg px-3 py-2" autoFocus />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block mb-1">Largura (m)</label>
+                          <input name="largura" type="number" step="0.01" placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-center" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block mb-1">Altura (m)</label>
+                          <input name="altura" type="number" step="0.01" placeholder="0.00" className="w-full border rounded-lg px-3 py-2 text-center" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Custo Total (R$) *</label>
+                        <input name="custoTotal" type="text" required placeholder="0,00" className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center" />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button type="button" onClick={() => setShowItemRapido(false)} className="flex-1 py-2.5 border rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
+                        <button type="submit" className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">Adicionar</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Editar Item */}
+              {showEditarItem && itemEditando && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                    <div className="p-4 border-b bg-blue-600 text-white">
+                      <h3 className="text-lg font-semibold">✏️ Editar Item</h3>
+                    </div>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.target);
+                      salvarEdicaoItem({
+                        descricao: formData.get('descricao'),
+                        ambiente: formData.get('ambiente'),
+                        largura: formData.get('largura'),
+                        altura: formData.get('altura'),
+                        custoTotal: formData.get('custoTotal'),
+                        quantidade: itemEditando.quantidade
+                      });
+                    }} className="p-4 space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Descrição *</label>
+                        <input name="descricao" type="text" required defaultValue={itemEditando.nome || itemEditando.descricao} className="w-full border rounded-lg px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Ambiente</label>
+                        <input name="ambiente" type="text" defaultValue={itemEditando.ambiente} className="w-full border rounded-lg px-3 py-2" list="ambientes-edit" />
+                        <datalist id="ambientes-edit">
+                          <option value="Cozinha" /><option value="Sala" /><option value="Suíte" /><option value="Quarto" /><option value="Escritório" /><option value="Varanda" />
+                        </datalist>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block mb-1">Largura (m)</label>
+                          <input name="largura" type="number" step="0.01" defaultValue={itemEditando.medidaLargura || ''} className="w-full border rounded-lg px-3 py-2 text-center" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 block mb-1">Altura (m)</label>
+                          <input name="altura" type="number" step="0.01" defaultValue={itemEditando.medidaAltura || ''} className="w-full border rounded-lg px-3 py-2 text-center" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Custo Total (R$) *</label>
+                        <input name="custoTotal" type="text" required defaultValue={itemEditando.valorTotal?.toFixed(2).replace('.', ',')} className="w-full border rounded-lg px-3 py-2 text-lg font-bold text-center" />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button type="button" onClick={() => { setShowEditarItem(false); setItemEditando(null); }} className="flex-1 py-2.5 border rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
+                        <button type="submit" className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">Salvar</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Aprovação de Orçamento */}
+              {showAprovacaoModal && orcamentoAprovando && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+                    <div className="p-4 border-b bg-green-600 text-white">
+                      <h3 className="text-lg font-semibold">✅ Aprovar Orçamento</h3>
+                      <p className="text-green-100 text-sm">{orcamentoAprovando.numero} - {orcamentoAprovando.cliente?.nome}</p>
+                    </div>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.target);
+                      const tipo = formData.get('tipoPagamento');
+                      const dados = {
+                        tipo: tipo,
+                        // PIX
+                        dataRecebimento: formData.get('dataRecebimento'),
+                        // Cartão/Boleto
+                        parcelas: formData.get('parcelas'),
+                        dataPrimeiraParcela: formData.get('dataPrimeiraParcela'),
+                        dataVencimento: formData.get('dataVencimento'),
+                        // Entrada + Parcelas
+                        valorEntrada: formData.get('valorEntrada'),
+                        dataEntrada: formData.get('dataEntrada'),
+                        formaEntrada: formData.get('formaEntrada'),
+                        formaParcelas: formData.get('formaParcelas')
+                      };
+                      processarAprovacao(dados);
+                    }} className="p-4 overflow-y-auto max-h-[60vh]">
+                      
+                      {/* Resumo do Orçamento */}
+                      <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><span className="text-gray-500">Custo Materiais:</span></div>
+                          <div className="text-right font-medium text-red-600">
+                            {formatCurrency(orcamentoAprovando.itens?.reduce((acc, item) => acc + (item.precoCusto * item.quantidade), 0) || 0)}
+                          </div>
+                          <div><span className="text-gray-500">Mão de Obra:</span></div>
+                          <div className="text-right font-medium text-red-600">{formatCurrency(orcamentoAprovando.custo_mao_obra || 0)}</div>
+                          <div><span className="text-gray-500">Instalação:</span></div>
+                          <div className="text-right font-medium text-red-600">{formatCurrency(orcamentoAprovando.custo_instalacao || 0)}</div>
+                          <div className="border-t pt-2 col-span-2"></div>
+                          <div><span className="text-gray-700 font-medium">VALOR VENDA:</span></div>
+                          <div className="text-right font-bold text-green-600 text-lg">{formatCurrency(orcamentoAprovando.totais?.total || 0)}</div>
+                        </div>
+                      </div>
+                      
+                      {/* Tipo de Pagamento */}
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-gray-700 block mb-2">Forma de Pagamento *</label>
+                        <select name="tipoPagamento" required className="w-full border rounded-lg px-3 py-2" onChange={(e) => {
+                          document.querySelectorAll('.pagamento-campos').forEach(el => el.classList.add('hidden'));
+                          const campos = document.getElementById('campos-' + e.target.value);
+                          if (campos) campos.classList.remove('hidden');
+                        }}>
+                          <option value="">Selecione...</option>
+                          <option value="pix">PIX (à vista)</option>
+                          <option value="cartao">Cartão de Crédito</option>
+                          <option value="boleto">Boleto</option>
+                          <option value="entrada_parcelas">Entrada + Parcelas</option>
+                        </select>
+                      </div>
+                      
+                      {/* Campos PIX */}
+                      <div id="campos-pix" className="pagamento-campos hidden space-y-3 p-3 bg-green-50 rounded-lg mb-4">
+                        <p className="text-sm font-medium text-green-700">💵 Pagamento PIX à Vista</p>
+                        <div>
+                          <label className="text-xs text-gray-600 block mb-1">Data do Recebimento *</label>
+                          <input name="dataRecebimento" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                        </div>
+                      </div>
+                      
+                      {/* Campos Cartão */}
+                      <div id="campos-cartao" className="pagamento-campos hidden space-y-3 p-3 bg-blue-50 rounded-lg mb-4">
+                        <p className="text-sm font-medium text-blue-700">💳 Cartão de Crédito</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">Parcelas *</label>
+                            <select name="parcelas" className="w-full border rounded-lg px-3 py-2 text-sm">
+                              {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}x</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">1ª Parcela *</label>
+                            <input name="dataPrimeiraParcela" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Campos Boleto */}
+                      <div id="campos-boleto" className="pagamento-campos hidden space-y-3 p-3 bg-amber-50 rounded-lg mb-4">
+                        <p className="text-sm font-medium text-amber-700">📄 Boleto Bancário</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">Parcelas *</label>
+                            <select name="parcelas" className="w-full border rounded-lg px-3 py-2 text-sm">
+                              {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}x</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">Vencimento 1ª *</label>
+                            <input name="dataVencimento" type="date" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Campos Entrada + Parcelas */}
+                      <div id="campos-entrada_parcelas" className="pagamento-campos hidden space-y-3 p-3 bg-purple-50 rounded-lg mb-4">
+                        <p className="text-sm font-medium text-purple-700">💰 Entrada + Parcelas</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">Valor Entrada (R$) *</label>
+                            <input name="valorEntrada" type="number" step="0.01" placeholder="0,00" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">Data Entrada *</label>
+                            <input name="dataEntrada" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">Forma Entrada</label>
+                            <select name="formaEntrada" className="w-full border rounded-lg px-3 py-2 text-sm">
+                              <option value="PIX">PIX</option>
+                              <option value="Dinheiro">Dinheiro</option>
+                              <option value="Transferência">Transferência</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">Qtd Parcelas *</label>
+                            <select name="parcelas" className="w-full border rounded-lg px-3 py-2 text-sm">
+                              {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}x</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">1ª Parcela *</label>
+                            <input name="dataPrimeiraParcela" type="date" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600 block mb-1">Forma Parcelas</label>
+                            <select name="formaParcelas" className="w-full border rounded-lg px-3 py-2 text-sm">
+                              <option value="Cartão">Cartão</option>
+                              <option value="Boleto">Boleto</option>
+                              <option value="PIX">PIX</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2 border-t">
+                        <button type="button" onClick={() => { setShowAprovacaoModal(false); setOrcamentoAprovando(null); }} className="flex-1 py-2.5 border rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
+                        <button type="submit" className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">✅ Aprovar e Lançar</button>
                       </div>
                     </form>
                   </div>
