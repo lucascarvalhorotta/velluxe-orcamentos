@@ -299,7 +299,7 @@
             custoInstalacao: 0,
             markup: 100,
             desconto: 0,
-            formaPagamento: 'À vista ou em até 3x sem juros',
+            formaPagamento: 'À vista ou em até 4x sem juros',
             prazoEntrega: '20 a 30 dias úteis',
             observacoes: '',
             garantia: '12 meses contra defeitos de fabricação'
@@ -1833,12 +1833,34 @@
                           <div className="border-t border-gray-600 my-2"></div>
                           <div className="flex justify-between text-xs"><span className="text-gray-500">Venda Materiais ({orcamento.markup}%):</span><span className="text-gray-400">{formatCurrency(totais.vendaMateriais)}</span></div>
                           <div className="flex justify-between text-xs"><span className="text-gray-500">+ Serviços:</span><span className="text-gray-400">{formatCurrency(totais.custoServicos)}</span></div>
-                          {orcamento.desconto > 0 && <div className="flex justify-between text-xs"><span className="text-gray-500">- Desconto ({orcamento.desconto}%):</span><span className="text-red-300">-{formatCurrency(totais.valorDesconto)}</span></div>}
                         </div>
-                        <div className="mt-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-lg">
-                          <p className="text-xs text-amber-300">VENDA (Final)</p>
-                          <p className="text-3xl font-bold text-amber-400">{formatCurrency(totais.total)}</p>
-                        </div>
+                        
+                        {/* Se tem desconto, mostra valor original + valor com desconto */}
+                        {orcamento.desconto > 0 && (
+                          <>
+                            <div className="mt-4 p-3 bg-slate-700/50 border border-slate-600 rounded-lg">
+                              <p className="text-xs text-gray-400">VALOR ORIGINAL</p>
+                              <p className="text-2xl font-bold text-gray-500 line-through">{formatCurrency(totais.precoVendaBruto)}</p>
+                            </div>
+                            
+                            <div className="mt-2 p-4 rounded-xl shadow-lg" style={{ background: 'linear-gradient(135deg, #1a2231 0%, #2d3748 100%)', border: '2px solid #D4AF37' }}>
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="text-xs font-medium" style={{ color: '#D4AF37' }}>✨ À VISTA ({orcamento.desconto}% OFF)</p>
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#D4AF37', color: '#1a2231' }}>-{formatCurrency(totais.valorDesconto)}</span>
+                              </div>
+                              <p className="text-3xl font-bold" style={{ color: '#D4AF37' }}>{formatCurrency(totais.total)}</p>
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Se não tem desconto, mostra só o total */}
+                        {orcamento.desconto === 0 && (
+                          <div className="mt-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                            <p className="text-xs text-amber-300">VALOR FINAL</p>
+                            <p className="text-3xl font-bold text-amber-400">{formatCurrency(totais.total)}</p>
+                          </div>
+                        )}
+                        
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           <div className="bg-green-900/50 rounded-lg p-2 text-center"><p className="text-xs text-green-300">LUCRO</p><p className="font-bold text-green-400">{formatCurrency(totais.lucro)}</p></div>
                           <div className="bg-blue-900/50 rounded-lg p-2 text-center"><p className="text-xs text-blue-300">MARGEM</p><p className="font-bold text-blue-400">{formatPercent(totais.margem)}</p></div>
@@ -2833,6 +2855,11 @@
                                       <tr key={item.id} style={{ borderBottom: '1px solid #eee', backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                                         <td style={{ padding: '10px' }}>
                                           <span style={{ fontWeight: '500' }}>{item.nome || item.descricao}</span>
+                                          {item.medidaLargura && item.medidaAltura && (
+                                            <span style={{ marginLeft: '8px', color: '#2563eb', fontSize: '10px' }}>
+                                              ({item.medidaLargura}m × {item.medidaAltura}m)
+                                            </span>
+                                          )}
                                         </td>
                                         <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600', width: '120px' }}>{formatCurrency(finalPrice)}</td>
                                       </tr>
@@ -2845,8 +2872,72 @@
                         </div>
                         {/* Totais */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-                          <div style={{ width: '250px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', fontSize: '16px', fontWeight: '700', backgroundColor: '#1a2231', color: '#D4AF37', borderRadius: '6px', marginTop: '8px' }}><span>TOTAL:</span><span>{formatCurrency(totais.total)}</span></div>
+                          <div style={{ width: '280px' }}>
+                            {/* Se tem desconto, mostra valor original riscado + valor com desconto */}
+                            {orcamento.desconto > 0 && (
+                              <>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  justifyContent: 'space-between', 
+                                  padding: '10px 12px', 
+                                  fontSize: '14px', 
+                                  fontWeight: '600', 
+                                  backgroundColor: '#f3f4f6', 
+                                  color: '#9ca3af',
+                                  borderRadius: '6px',
+                                  textDecoration: 'line-through'
+                                }}>
+                                  <span>VALOR:</span>
+                                  <span>{formatCurrency(totais.precoVendaBruto)}</span>
+                                </div>
+                                
+                                <div style={{ 
+                                  marginTop: '8px',
+                                  background: 'linear-gradient(135deg, #1a2231 0%, #2d3748 100%)',
+                                  borderRadius: '8px',
+                                  padding: '12px',
+                                  border: '2px solid #D4AF37',
+                                  boxShadow: '0 4px 6px rgba(212, 175, 55, 0.2)'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                    <span style={{ fontSize: '10px', color: '#D4AF37', fontWeight: '600', textTransform: 'uppercase' }}>
+                                      ✨ À Vista ({orcamento.desconto}% OFF)
+                                    </span>
+                                    <span style={{ 
+                                      backgroundColor: '#D4AF37', 
+                                      color: '#1a2231', 
+                                      fontSize: '9px', 
+                                      fontWeight: '700', 
+                                      padding: '2px 6px', 
+                                      borderRadius: '10px' 
+                                    }}>
+                                      ECONOMIZE {formatCurrency(totais.valorDesconto)}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', color: '#D4AF37', fontWeight: '600' }}>TOTAL:</span>
+                                    <span style={{ fontSize: '20px', color: '#D4AF37', fontWeight: '800' }}>{formatCurrency(totais.total)}</span>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            
+                            {/* Se não tem desconto, mostra apenas o total normal */}
+                            {orcamento.desconto === 0 && (
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                padding: '12px', 
+                                fontSize: '16px', 
+                                fontWeight: '700', 
+                                backgroundColor: '#1a2231', 
+                                color: '#D4AF37', 
+                                borderRadius: '6px'
+                              }}>
+                                <span>TOTAL:</span>
+                                <span>{formatCurrency(totais.total)}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         {/* Condições */}
